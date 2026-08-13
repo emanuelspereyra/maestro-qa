@@ -8,7 +8,12 @@ assert de agentes esperados.
 
 import json
 
-from maestro_qa.agents import automatizacion, casos_manuales, datos_prueba  # noqa: F401
+from maestro_qa.agents import (  # noqa: F401
+    automatizacion,
+    casos_manuales,
+    datos_prueba,
+    performance,
+)
 from maestro_qa.orchestrator import Intake, run
 
 CASES_RESPONSE = json.dumps(
@@ -81,6 +86,23 @@ DATOS_PRUEBA_RESPONSE = json.dumps(
 )
 
 
+PERFORMANCE_RESPONSE = json.dumps(
+    {
+        "test_type": "load",
+        "locustfile_filename": "performance/locustfile_login.py",
+        "locustfile_code": (
+            "from locust import HttpUser, task\n\n\n"
+            "class LoginUser(HttpUser):\n"
+            "    @task\n"
+            "    def login(self):\n"
+            "        self.client.post('/login', json={})\n"
+        ),
+        "run_command": "locust -f performance/locustfile_login.py --headless -u 10 -r 1 -t 1m",
+        "pending_items": [],
+    }
+)
+
+
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
 
@@ -89,6 +111,8 @@ class RoutingFakeProvider:
             return AUTOMATIZACION_RESPONSE
         if "sensitive_fields" in system:
             return DATOS_PRUEBA_RESPONSE
+        if "locustfile_filename" in system:
+            return PERFORMANCE_RESPONSE
         return CASES_RESPONSE
 
 
@@ -119,6 +143,16 @@ def test_datos_prueba_runs_alongside_casos_manuales(tmp_path, monkeypatch):
     agents_ran = {r.agent for r in result.results}
     assert "casos_manuales" in agents_ran
     assert "datos_prueba" in agents_ran
+    assert not any(r.error for r in result.results), result.results
+
+
+def test_performance_runs_alongside_casos_manuales():
+    intake = Intake(source="jira_ticket", text="Necesitamos probar la carga y el throughput del login")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "casos_manuales" in agents_ran
+    assert "performance" in agents_ran
     assert not any(r.error for r in result.results), result.results
 
 
