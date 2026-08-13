@@ -102,9 +102,10 @@ si el formato de abajo no coincide. Como punto de partida (`.vscode/mcp.json`):
 Python del propio SDK MCP (`mcp.client`) — arranca el servidor como subproceso, lista las
 tools, llama una — sin mockear el protocolo. Claude Code y Copilot son clientes MCP
 genéricos: si el protocolo está bien implementado (vía el SDK oficial), son compatibles sin
-necesitar una prueba específica por cliente. Lo que **no** se hizo: abrir VS Code con
-Copilot y probarlo a mano — no hay entorno gráfico en este entorno de desarrollo. Confirmarlo
-una vez con tu propio VS Code antes de darlo por sentado en producción.
+necesitar una prueba específica por cliente.
+
+**Confirmado con VS Code + GitHub Copilot real (Emanuel, 2026-08-13)** — el formato de
+`.vscode/mcp.json` de la sección anterior funciona.
 
 ## Smoke test (conectividad real)
 
