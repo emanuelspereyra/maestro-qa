@@ -1,24 +1,13 @@
 import json
-import os
 import re
 import subprocess
 import tempfile
 from pathlib import Path
 
+from .. import vendor_bundle
 from ..orchestrator import AgentResult, Intake
 from ..providers import Provider
 from .registry import AGENT_REGISTRY
-
-# ponytail: ruta relativa al repo — rompe si el paquete se instala fuera de este
-# repo (ej. wheel en otro proyecto). Ver specs/004-agente-casos-manuales.md backlog.
-_DEFAULT_SCRIPTS_DIR = (
-    Path(__file__).resolve().parents[3]
-    / "vendor"
-    / "qa-intelligent-skill-bundle"
-    / "skills"
-    / "generate-qa-from-test-cases"
-    / "scripts"
-)
 
 _SYSTEM_PROMPT = """Sos un agente de QA que genera casos de prueba manuales en el \
 contrato canónico de FÓRMULA de casos de prueba. Te llega la descripción de una feature o \
@@ -82,15 +71,11 @@ def _extract_json_array(text: str) -> str:
     return match.group(0)
 
 
-def _scripts_dir() -> Path:
-    return Path(os.environ.get("MAESTRO_QA_BUNDLE_SCRIPTS", str(_DEFAULT_SCRIPTS_DIR)))
-
-
 class CasosManualesAgent:
     def run(self, intake: Intake, provider: Provider) -> AgentResult:
         raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
         cases = json.loads(_extract_json_array(raw))
-        scripts_dir = _scripts_dir()
+        scripts_dir = vendor_bundle.scripts_dir()
 
         layers_present = sorted({case.get("layer") for case in cases if case.get("layer")})
         document = {
