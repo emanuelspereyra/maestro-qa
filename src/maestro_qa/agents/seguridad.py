@@ -1,8 +1,9 @@
 import json
 import os
 import re
+from pathlib import Path
 
-from .. import sonarqube
+from .. import sonarqube, sonarqube_runtime
 from ..orchestrator import AgentResult, Intake
 from ..providers import Provider
 from .registry import AGENT_REGISTRY
@@ -86,18 +87,7 @@ def _validate(payload: dict[str, object]) -> None:
             )
 
 
-def _sonarqube_context() -> str | None:
-    base_url = os.environ.get("MAESTRO_SONARQUBE_URL")
-    token = os.environ.get("MAESTRO_SONARQUBE_TOKEN")
-    project_key = os.environ.get("MAESTRO_SONARQUBE_PROJECT_KEY")
-    if not (base_url and token and project_key):
-        return None
-    try:
-        findings = sonarqube.fetch_findings(base_url, token, project_key)
-    except sonarqube.SonarQubeError:
-        # ponytail: la evidencia de SonarQube es un plus, no debe tumbar la
-        # generación de casos si el servidor no responde. Ver specs/014 backlog.
-        return None
+def _format_findings(findings: dict[str, list[dict[str, object]]]) -> str | None:
     if not findings["vulnerabilities"] and not findings["hotspots"]:
         return None
     return (
@@ -106,6 +96,32 @@ def _sonarqube_context() -> str | None:
         f"- {len(findings['hotspots'])} security hotspots pendientes de revisión\n"
         f"{json.dumps(findings, ensure_ascii=False)}"
     )
+
+
+def _sonarqube_context() -> str | None:
+    # ponytail: la evidencia de SonarQube es un plus, no debe tumbar la generación
+    # de casos si el servidor no responde o el scan efímero falla.
+    if os.environ.get("MAESTRO_SONARQUBE_EPHEMERAL", "").lower() == "true":
+        scan_path = os.environ.get("MAESTRO_SONARQUBE_SCAN_PATH")
+        project_key = os.environ.get("MAESTRO_SONARQUBE_PROJECT_KEY")
+        if not (scan_path and project_key):
+            return None
+        try:
+            findings = sonarqube_runtime.run_ephemeral_scan(Path(scan_path), project_key)
+        except sonarqube_runtime.SonarQubeRuntimeError:
+            return None
+        return _format_findings(findings)
+
+    base_url = os.environ.get("MAESTRO_SONARQUBE_URL")
+    token = os.environ.get("MAESTRO_SONARQUBE_TOKEN")
+    project_key = os.environ.get("MAESTRO_SONARQUBE_PROJECT_KEY")
+    if not (base_url and token and project_key):
+        return None
+    try:
+        findings = sonarqube.fetch_findings(base_url, token, project_key)
+    except sonarqube.SonarQubeError:
+        return None
+    return _format_findings(findings)
 
 
 class SeguridadAgent:

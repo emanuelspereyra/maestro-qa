@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from maestro_qa import sonarqube
+from maestro_qa import sonarqube, sonarqube_runtime
 from maestro_qa.agents import seguridad
 from maestro_qa.agents.seguridad import AGENT_REGISTRY, SeguridadAgent
 from maestro_qa.orchestrator import Intake
@@ -124,6 +124,60 @@ def test_sonarqube_failure_does_not_break_case_generation(monkeypatch):
         raise sonarqube.SonarQubeError("servidor caído")
 
     monkeypatch.setattr(seguridad.sonarqube, "fetch_findings", raise_error)
+    payload = {"cases": [VALID_CASE], "pending_items": []}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="revisar permisos")
+
+    result = SeguridadAgent().run(intake, provider)
+
+    assert result.agent == "seguridad"
+    assert provider.received_messages[0] == "revisar permisos"
+
+
+def test_ephemeral_mode_runs_scan_and_injects_findings(monkeypatch):
+    monkeypatch.setenv("MAESTRO_SONARQUBE_EPHEMERAL", "true")
+    monkeypatch.setenv("MAESTRO_SONARQUBE_SCAN_PATH", "/tmp/some-repo")
+    monkeypatch.setenv("MAESTRO_SONARQUBE_PROJECT_KEY", "my-project")
+    monkeypatch.setattr(
+        seguridad.sonarqube_runtime,
+        "run_ephemeral_scan",
+        lambda repo_path, project_key: {
+            "vulnerabilities": [{"severity": "CRITICAL", "message": "SQLi", "component": "x", "line": 1}],
+            "hotspots": [],
+        },
+    )
+    payload = {"cases": [VALID_CASE], "pending_items": []}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="jira_ticket", text="revisar permisos")
+
+    SeguridadAgent().run(intake, provider)
+
+    assert "Hallazgos reales de SonarQube" in provider.received_messages[0]
+    assert "SQLi" in provider.received_messages[0]
+
+
+def test_ephemeral_mode_failure_does_not_break_case_generation(monkeypatch):
+    monkeypatch.setenv("MAESTRO_SONARQUBE_EPHEMERAL", "true")
+    monkeypatch.setenv("MAESTRO_SONARQUBE_SCAN_PATH", "/tmp/some-repo")
+    monkeypatch.setenv("MAESTRO_SONARQUBE_PROJECT_KEY", "my-project")
+
+    def raise_error(repo_path, project_key):
+        raise sonarqube_runtime.SonarQubeRuntimeError("docker no disponible")
+
+    monkeypatch.setattr(seguridad.sonarqube_runtime, "run_ephemeral_scan", raise_error)
+    payload = {"cases": [VALID_CASE], "pending_items": []}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="revisar permisos")
+
+    result = SeguridadAgent().run(intake, provider)
+
+    assert result.agent == "seguridad"
+    assert provider.received_messages[0] == "revisar permisos"
+
+
+def test_ephemeral_mode_without_scan_path_falls_back_silently(monkeypatch):
+    monkeypatch.setenv("MAESTRO_SONARQUBE_EPHEMERAL", "true")
+    monkeypatch.delenv("MAESTRO_SONARQUBE_SCAN_PATH", raising=False)
     payload = {"cases": [VALID_CASE], "pending_items": []}
     provider = FakeProvider(json.dumps(payload))
     intake = Intake(source="spec", text="revisar permisos")
