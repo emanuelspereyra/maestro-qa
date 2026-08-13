@@ -7,10 +7,10 @@ name = "maestro-qa"
 version = "0.1.0"
 description = "Orquestador multi-agente de testing, expuesto como servidor MCP"
 requires-python = ">=3.11"
-dependencies = ["anthropic", "openai"]
+dependencies = ["anthropic", "openai", "pyyaml"]
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest"]
+dev = ["ruff", "mypy", "pytest", "types-PyYAML"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/maestro_qa"]

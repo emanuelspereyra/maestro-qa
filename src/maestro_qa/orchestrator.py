@@ -4,11 +4,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from . import vendor_bundle
+from . import onboarding, vendor_bundle
 from .agents.registry import AGENT_REGISTRY
 from .providers import Provider
 
 _PROJECT = "maestro-qa"
+
+
+def project_config_path() -> Path:
+    """Dónde está documentado el proyecto (repos, ambiente, etc.) — ver spec 009.
+
+    run() no lo lee ni lo verifica en cada ticket (sería una llamada de red por
+    ticket); es para que quien inicie el proceso (hoy nosotros, después el
+    servidor MCP) sepa dónde llamar a onboarding.ensure_project() una vez.
+    """
+    return onboarding.PROJECT_CONFIG_PATH
 
 _DEFAULT_AGENTS = ["casos_manuales", "trazabilidad"]
 
