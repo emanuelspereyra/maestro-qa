@@ -25,6 +25,10 @@ mypy src
 pytest
 ```
 
+`tests/test_integration.py` corre el orquestador con los agentes YA registrados (no fakes
+aislados) — detecta roturas de integración entre agentes reales. Al agregar un agente nuevo,
+sumarlo también ahí.
+
 ## Smoke test (conectividad real)
 
 `pytest` usa providers falsos — no confirma que el adaptador real hable bien con la API del
