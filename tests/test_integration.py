@@ -8,7 +8,7 @@ assert de agentes esperados.
 
 import json
 
-from maestro_qa.agents import automatizacion, casos_manuales  # noqa: F401
+from maestro_qa.agents import automatizacion, casos_manuales, datos_prueba  # noqa: F401
 from maestro_qa.orchestrator import Intake, run
 
 CASES_RESPONSE = json.dumps(
@@ -62,12 +62,33 @@ AUTOMATIZACION_RESPONSE = json.dumps(
 )
 
 
+DATOS_PRUEBA_RESPONSE = json.dumps(
+    {
+        "dataset_id": "DS-USERS-001",
+        "seed": 12345,
+        "entities": [
+            {
+                "name": "users",
+                "target": "dbo.users",
+                "identifier_fields": ["id"],
+                "display_fields": ["username"],
+                "sensitive_fields": [],
+                "count": 2,
+                "fields": {"id": {"type": "uuid"}, "username": {"type": "username"}},
+            }
+        ],
+    }
+)
+
+
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
 
     def complete(self, system, messages, **kwargs):
         if "page_object_filename" in system:
             return AUTOMATIZACION_RESPONSE
+        if "sensitive_fields" in system:
+            return DATOS_PRUEBA_RESPONSE
         return CASES_RESPONSE
 
 
@@ -88,3 +109,14 @@ def test_ticket_without_automation_keywords_only_runs_casos_manuales():
     agents_ran = {r.agent for r in result.results}
     assert "casos_manuales" in agents_ran
     assert "automatizacion" not in agents_ran
+
+
+def test_datos_prueba_runs_alongside_casos_manuales(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    intake = Intake(source="jira_ticket", text="Necesito un dataset de usuarios de prueba")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "casos_manuales" in agents_ran
+    assert "datos_prueba" in agents_ran
+    assert not any(r.error for r in result.results), result.results
