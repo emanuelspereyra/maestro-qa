@@ -7,7 +7,10 @@ name = "maestro-qa"
 version = "0.1.0"
 description = "Orquestador multi-agente de testing, expuesto como servidor MCP"
 requires-python = ">=3.11"
-dependencies = ["anthropic", "openai", "pyyaml", "httpx"]
+dependencies = ["anthropic", "openai", "pyyaml", "httpx", "mcp"]
+
+[project.scripts]
+maestro-qa-mcp = "maestro_qa.mcp_server:main"
 
 [project.optional-dependencies]
 dev = ["ruff", "mypy", "pytest", "types-PyYAML"]
