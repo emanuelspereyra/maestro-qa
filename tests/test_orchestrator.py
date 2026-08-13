@@ -18,9 +18,11 @@ class FakeAgent:
 
 @pytest.fixture
 def clean_registry():
+    original = dict(AGENT_REGISTRY)
     AGENT_REGISTRY.clear()
     yield AGENT_REGISTRY
     AGENT_REGISTRY.clear()
+    AGENT_REGISTRY.update(original)
 
 
 def test_default_agents_always_included():
