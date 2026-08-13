@@ -1,6 +1,8 @@
 import json
+import os
 import re
 
+from .. import sonarqube
 from ..orchestrator import AgentResult, Intake
 from ..providers import Provider
 from .registry import AGENT_REGISTRY
@@ -37,6 +39,10 @@ que no estén ahí ni en el ticket.
 
 Si una categoría aplicaría pero falta información del ticket para escribir el caso en \
 concreto, agregala a `pending_items` en vez de inventar detalles.
+
+Si el mensaje incluye una sección "Hallazgos reales de SonarQube", son evidencia real del \
+análisis estático del código — priorizá casos que verifiquen en runtime esas \
+vulnerabilidades/hotspots concretos, además de los que apliquen por el ticket.
 
 Devolvé EXCLUSIVAMENTE un objeto JSON (sin texto adicional, sin markdown) con estos campos:
 {
@@ -80,9 +86,36 @@ def _validate(payload: dict[str, object]) -> None:
             )
 
 
+def _sonarqube_context() -> str | None:
+    base_url = os.environ.get("MAESTRO_SONARQUBE_URL")
+    token = os.environ.get("MAESTRO_SONARQUBE_TOKEN")
+    project_key = os.environ.get("MAESTRO_SONARQUBE_PROJECT_KEY")
+    if not (base_url and token and project_key):
+        return None
+    try:
+        findings = sonarqube.fetch_findings(base_url, token, project_key)
+    except sonarqube.SonarQubeError:
+        # ponytail: la evidencia de SonarQube es un plus, no debe tumbar la
+        # generación de casos si el servidor no responde. Ver specs/014 backlog.
+        return None
+    if not findings["vulnerabilities"] and not findings["hotspots"]:
+        return None
+    return (
+        "Hallazgos reales de SonarQube:\n"
+        f"- {len(findings['vulnerabilities'])} vulnerabilidades abiertas\n"
+        f"- {len(findings['hotspots'])} security hotspots pendientes de revisión\n"
+        f"{json.dumps(findings, ensure_ascii=False)}"
+    )
+
+
 class SeguridadAgent:
     def run(self, intake: Intake, provider: Provider) -> AgentResult:
-        raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
+        message = intake.text
+        sonarqube_context = _sonarqube_context()
+        if sonarqube_context:
+            message = f"{message}\n\n{sonarqube_context}"
+
+        raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": message}])
         payload = json.loads(_extract_json_object(raw))
         _validate(payload)
 
