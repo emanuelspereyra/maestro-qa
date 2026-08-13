@@ -16,6 +16,7 @@ from maestro_qa.agents import (  # noqa: F401
     documentacion,
     performance,
     priorizacion_bugs,
+    regresion,
     seguridad,
 )
 from maestro_qa.orchestrator import Intake, run
