@@ -37,14 +37,15 @@ LLM (provider.complete) → JSON de casos → validate_cases.py → render_manua
 casos — no el objeto completo con `coverage`, eso lo calcula `validate_cases.py`.
 
 **Validación — por qué no se usan las mismas flags que sugiere el SKILL.md original:**
-`--require-layers frontend backend` tiene sentido para la entrega completa de un proyecto,
-no para un ticket individual que legítimamente puede ser solo backend o solo frontend. El
-agente valida:
-- `--require-scenarios happy-path unhappy-path boundary` (toda capa presente debe tener como
-  mínimo estas 3 familias) — sí se mantiene, es una garantía de calidad por caso, no de
-  alcance del proyecto.
-- Sin `--strict` — cobertura `PARTIAL` (falta alguna capa) es aceptable para un ticket
-  puntual; se informa en el resumen, no bloquea el resultado.
+`--require-layers frontend backend` (o el default hardcodeado de `validate_cases.py` cuando
+no se pasa ninguna flag ni `coverage.required_layers`) asume que TODO ticket necesita ambas
+capas — para un ticket legítimamente backend-only, eso lo marca como `error` duro, no
+warning. Se resuelve declarando `coverage.required_layers` en el propio documento, calculado
+de las capas que el LLM efectivamente usó en los casos generados — no una lista fija por
+CLI. `coverage.required_scenario_families` (happy-path/unhappy-path/boundary) sí queda fijo,
+es una garantía de calidad por caso, no de alcance del proyecto.
+- Sin `--strict` — cobertura `PARTIAL` (falta alguna familia de escenario) es aceptable para
+  un ticket puntual; se informa en el resumen, no bloquea el resultado.
 - Si `validate_cases.py` reporta `errors` (JSON estructuralmente inválido — el LLM no siguió
   el contrato), el agente levanta una excepción. El orquestador (spec 002) ya la captura y
   la marca como resultado con error sin abortar a los demás agentes — no hace falta lógica
