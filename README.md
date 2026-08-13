@@ -24,3 +24,13 @@ ruff check .
 mypy src
 pytest
 ```
+
+## Smoke test (conectividad real)
+
+`pytest` usa providers falsos — no confirma que el adaptador real hable bien con la API del
+proveedor. Antes de confiar en un agente nuevo, correr una vez con una key real:
+
+```bash
+MAESTRO_PROVIDER=anthropic MAESTRO_MODEL=claude-sonnet-5 MAESTRO_API_KEY=sk-... \
+    python scripts/smoke_test.py
+```
