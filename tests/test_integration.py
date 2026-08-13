@@ -13,6 +13,7 @@ from maestro_qa.agents import (  # noqa: F401
     casos_manuales,
     datos_prueba,
     performance,
+    priorizacion_bugs,
 )
 from maestro_qa.orchestrator import Intake, run
 
@@ -103,6 +104,24 @@ PERFORMANCE_RESPONSE = json.dumps(
 )
 
 
+PRIORIZACION_BUGS_RESPONSE = json.dumps(
+    {
+        "title": "El login con Google no redirige",
+        "case_id_o_fuente": "FE-TC-001",
+        "ambiente_y_versiones": "QA, commit abc123",
+        "preconditions": ["Cuenta de Google válida"],
+        "datos_usados": "DS-AUTH-001",
+        "steps": ["Click en login con Google"],
+        "expected_result": "Redirige al dashboard",
+        "actual_result": "Se queda en login",
+        "reproducibility": "siempre",
+        "severity": "High",
+        "business_priority": "pendiente de decisión de negocio",
+        "evidence_required": ["screenshot"],
+    }
+)
+
+
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
 
@@ -113,6 +132,8 @@ class RoutingFakeProvider:
             return DATOS_PRUEBA_RESPONSE
         if "locustfile_filename" in system:
             return PERFORMANCE_RESPONSE
+        if "case_id_o_fuente" in system:
+            return PRIORIZACION_BUGS_RESPONSE
         return CASES_RESPONSE
 
 
@@ -153,6 +174,16 @@ def test_performance_runs_alongside_casos_manuales():
     agents_ran = {r.agent for r in result.results}
     assert "casos_manuales" in agents_ran
     assert "performance" in agents_ran
+    assert not any(r.error for r in result.results), result.results
+
+
+def test_priorizacion_bugs_runs_alongside_casos_manuales():
+    intake = Intake(source="jira_ticket", text="Reportar el bug del login que no redirige")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "casos_manuales" in agents_ran
+    assert "priorizacion_bugs" in agents_ran
     assert not any(r.error for r in result.results), result.results
 
 
