@@ -60,6 +60,12 @@ Agota reintentos → levanta `ProviderError` con la causa original. Errores no t
 - Cambiar de proveedor (ej. de Anthropic a DeepSeek) es cambiar 2-3 variables de entorno,
   cero cambios de código en los agentes.
 
+## Notas de implementación
+Los SDKs de `anthropic` y `openai` sobrecargan `create()` con literales de modelo y
+combinaciones stream/no-stream que no matchean pasar `**kwargs` dinámico — de ahí los
+`# type: ignore[call-overload]` puntuales en las dos llamadas. Es una limitación de los
+stubs de tipos de esos SDKs, no del diseño de esta capa.
+
 ## Fuera de alcance / backlog
 - **Proveedor distinto por agente** (ej. DeepSeek para generación de datos, Claude para
   triage de bugs) — útil como optimización de costo/calidad más adelante, pero v1 asume un
