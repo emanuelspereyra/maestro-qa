@@ -39,6 +39,12 @@ def test_keyword_routes_extra_agents():
     assert "seguridad" in selected
 
 
+def test_keyword_routes_backend_api_automation():
+    intake = Intake(source="jira_ticket", text="automatizar el endpoint de creación de usuarios")
+    selected = classify_agents(intake)
+    assert "automatizacion_api" in selected
+
+
 def test_run_skips_agents_not_registered(clean_registry):
     intake = Intake(source="spec", text="cualquier cosa")
     result = run(intake, provider=None)

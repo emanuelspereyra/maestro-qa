@@ -10,6 +10,7 @@ import json
 
 from maestro_qa.agents import (  # noqa: F401
     automatizacion,
+    automatizacion_api,
     casos_manuales,
     datos_prueba,
     performance,
@@ -122,6 +123,22 @@ PRIORIZACION_BUGS_RESPONSE = json.dumps(
 )
 
 
+AUTOMATIZACION_API_RESPONSE = json.dumps(
+    {
+        "api_client_filename": "clients/users_client.py",
+        "api_client_code": (
+            "import httpx\n\n\n"
+            "class UsersClient:\n"
+            "    def __init__(self, api_base_url):\n"
+            "        self._client = httpx.Client(base_url=api_base_url)\n"
+        ),
+        "test_filename": "tests/test_users_api.py",
+        "test_code": "def test_create_user(api_base_url):\n    assert api_base_url\n",
+        "pending_items": [],
+    }
+)
+
+
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
 
@@ -134,6 +151,8 @@ class RoutingFakeProvider:
             return PERFORMANCE_RESPONSE
         if "case_id_o_fuente" in system:
             return PRIORIZACION_BUGS_RESPONSE
+        if "api_client_filename" in system:
+            return AUTOMATIZACION_API_RESPONSE
         return CASES_RESPONSE
 
 
@@ -184,6 +203,16 @@ def test_priorizacion_bugs_runs_alongside_casos_manuales():
     agents_ran = {r.agent for r in result.results}
     assert "casos_manuales" in agents_ran
     assert "priorizacion_bugs" in agents_ran
+    assert not any(r.error for r in result.results), result.results
+
+
+def test_automatizacion_api_runs_alongside_casos_manuales():
+    intake = Intake(source="jira_ticket", text="Automatizar el endpoint backend de creación de usuarios")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "casos_manuales" in agents_ran
+    assert "automatizacion_api" in agents_ran
     assert not any(r.error for r in result.results), result.results
 
 

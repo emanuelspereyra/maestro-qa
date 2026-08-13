@@ -25,6 +25,7 @@ _DEFAULT_AGENTS = ["casos_manuales", "trazabilidad"]
 # ponytail: routing por keyword, no por LLM — techo conocido, ver specs/002-orquestador.md
 _KEYWORD_AGENTS = {
     "automatizacion": ["automatiz", "e2e", "ci/cd"],
+    "automatizacion_api": ["endpoint", "api rest", "backend"],
     "datos_prueba": ["datos de prueba", "test data", "dataset", "carga masiva"],
     "priorizacion_bugs": ["bug", "defecto", "incidencia", "hotfix"],
     "documentacion": ["documentar", "documentación", "manual de usuario"],
