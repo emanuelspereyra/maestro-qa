@@ -3,8 +3,8 @@
 Orquestador multi-agente de testing. Recibe una tarea (ticket de Jira o spec/PRD) y
 reparte el trabajo entre agentes especializados (casos manuales, automatización, datos de
 prueba, priorización de bugs, regresión, performance, seguridad, trazabilidad,
-release-readiness). Se expone como servidor MCP — usable desde Claude Code y GitHub Copilot
-sin integración adicional.
+release-readiness). Se expone como servidor MCP — usable desde Claude Code, GitHub Copilot
+y Codex CLI sin integración adicional (protocolo genérico, confirmado con los 3).
 
 Ver [`specs/000-arquitectura.md`](specs/000-arquitectura.md) para el diseño completo.
 
@@ -54,13 +54,24 @@ python -m maestro_qa.mcp_server
 # o, si se instaló el paquete: maestro-qa-mcp
 ```
 
-Corre por stdio — no hay puerto que abrir, el cliente (Claude Code, Copilot, etc.) lo lanza
-como subproceso él mismo.
+Corre por stdio — no hay puerto que abrir, el cliente (Claude Code, Copilot, Codex, etc.)
+lo lanza como subproceso él mismo.
+
+**Ojo con el intérprete — bug real que encontramos probando esto:** si instalaste con
+`pip install -e .` dentro de un venv (`.venv/`, como en este repo), un `command: "python3"`
+genérico en la config del cliente puede resolver al Python **del sistema**, que no tiene
+`maestro_qa` instalado — el servidor falla al arrancar y el cliente reporta errores
+confusos ("not ready", "connection closed") en vez de "módulo no encontrado". Usá siempre
+el path **absoluto** al intérprete del venv:
+
+```bash
+which python  # con el venv activado — ese es el path a usar, ej. /ruta/a/maestro-qa/.venv/bin/python
+```
 
 ### 3. Registrarlo en Claude Code
 
 ```bash
-claude mcp add maestro-qa -- python3 -m maestro_qa.mcp_server
+claude mcp add maestro-qa -- /ruta/a/maestro-qa/.venv/bin/python -m maestro_qa.mcp_server
 ```
 
 O agregando manualmente a `.mcp.json` en la raíz del proyecto donde se vaya a usar:
@@ -69,7 +80,7 @@ O agregando manualmente a `.mcp.json` en la raíz del proyecto donde se vaya a u
 {
   "mcpServers": {
     "maestro-qa": {
-      "command": "python3",
+      "command": "/ruta/a/maestro-qa/.venv/bin/python",
       "args": ["-m", "maestro_qa.mcp_server"],
       "cwd": "/ruta/a/maestro-qa"
     }
@@ -97,7 +108,7 @@ configuración de esta sección está probada, no es solo teórica.
    {
      "servers": {
        "maestro-qa": {
-         "command": "python3",
+         "command": "/ruta/a/maestro-qa/.venv/bin/python",
          "args": ["-m", "maestro_qa.mcp_server"],
          "cwd": "/ruta/a/maestro-qa"
        }
@@ -124,21 +135,57 @@ configuración de esta sección está probada, no es solo teórica.
    Agent mode) y devolver el reporte agregado.
 
 **Si algo no aparece:** revisar `MCP: Show Output` en la paleta de comandos — ahí se ve el
-stderr del proceso si `python3 -m maestro_qa.mcp_server` falla al arrancar (por ejemplo, si
-falta instalar el paquete en ese intérprete, o si `MAESTRO_API_KEY` no está en el `.env` del
-`cwd` configurado).
+stderr del proceso si el servidor falla al arrancar (típicamente: el `command` apunta a un
+Python sin `maestro_qa` instalado — ver la nota del paso 2 — o `.env` no está en el `cwd`
+configurado).
 
 Si el formato de `.vscode/mcp.json` cambia en una versión futura de la extensión, la
 [documentación oficial de GitHub Copilot sobre servidores MCP](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
 tiene la sintaxis vigente.
 
+### 5. Registrarlo en Codex CLI
+
+**Confirmado funcionando con Codex CLI real (`codex-cli 0.146.0`, 2026-08-13)** — se
+registró el servidor y se probó `ensure_project` de punta a punta vía `codex exec`, sin
+mocks.
+
+```bash
+codex mcp add maestro-qa \
+  --env MAESTRO_ENV_FILE=/ruta/a/maestro-qa/.env \
+  -- /ruta/a/maestro-qa/.venv/bin/python -m maestro_qa.mcp_server
+```
+
+A diferencia de Claude Code/VS Code, `codex mcp add` no tiene una flag `--cwd` — por eso acá
+se usa `--env MAESTRO_ENV_FILE=...` en vez de depender del directorio de trabajo para
+encontrar `.env` (`config.load_env_file()` respeta esa variable si está seteada, sin
+importar desde dónde Codex arranque el proceso). Este mismo patrón con `env` en vez de `cwd`
+también funciona en Claude Code/VS Code si se prefiere no fijar un directorio de trabajo.
+
+Verificar:
+
+```bash
+codex mcp list        # confirma que "maestro-qa" aparece enabled
+codex mcp get maestro-qa
+```
+
+Y probarlo de verdad (no necesita `MAESTRO_API_KEY` real, `ensure_project` no llama a
+ningún LLM):
+
+```bash
+codex exec --sandbox danger-full-access \
+  "Usá la tool ensure_project del servidor MCP maestro-qa y decime qué devolvió."
+```
+
+`--sandbox danger-full-access` hizo falta porque el servidor arranca un subproceso Python —
+con el sandbox por defecto (`read-only`) la conexión al servidor no se establece. Ajustar
+según cuánto confíes en lo que corre en tu máquina.
+
 ### Qué está validado y qué no
 
 `tests/test_mcp_server.py` valida el servidor conectándose por stdio con el cliente Python
 del propio SDK MCP (`mcp.client`) — arranca el servidor como subproceso, lista las tools,
-llama una — sin mockear el protocolo. Eso ya daba confianza de que cualquier cliente MCP
-genérico (Claude Code, Copilot) iba a funcionar; la instalación real en VS Code de arriba lo
-terminó de confirmar con el cliente real.
+llama una — sin mockear el protocolo. Además de eso, quedó confirmado con los 3 clientes
+reales: Claude Code, VS Code + GitHub Copilot, y Codex CLI.
 
 ## Smoke test (conectividad real)
 
