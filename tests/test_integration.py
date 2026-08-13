@@ -15,6 +15,7 @@ from maestro_qa.agents import (  # noqa: F401
     datos_prueba,
     performance,
     priorizacion_bugs,
+    seguridad,
 )
 from maestro_qa.orchestrator import Intake, run
 
@@ -139,6 +140,23 @@ AUTOMATIZACION_API_RESPONSE = json.dumps(
 )
 
 
+SEGURIDAD_RESPONSE = json.dumps(
+    {
+        "cases": [
+            {
+                "category": "broken-access-control",
+                "title": "Un usuario no puede leer el perfil de otro",
+                "objective": "Verificar autorización a nivel de objeto",
+                "steps": ["Loguearse como A", "Solicitar GET /users/<id-de-B>"],
+                "expected_result": "La API responde 403",
+                "severity_if_fails": "High",
+            }
+        ],
+        "pending_items": [],
+    }
+)
+
+
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
 
@@ -153,6 +171,8 @@ class RoutingFakeProvider:
             return PRIORIZACION_BUGS_RESPONSE
         if "api_client_filename" in system:
             return AUTOMATIZACION_API_RESPONSE
+        if "severity_if_fails" in system:
+            return SEGURIDAD_RESPONSE
         return CASES_RESPONSE
 
 
@@ -213,6 +233,16 @@ def test_automatizacion_api_runs_alongside_casos_manuales():
     agents_ran = {r.agent for r in result.results}
     assert "casos_manuales" in agents_ran
     assert "automatizacion_api" in agents_ran
+    assert not any(r.error for r in result.results), result.results
+
+
+def test_seguridad_runs_alongside_casos_manuales():
+    intake = Intake(source="jira_ticket", text="Revisar permisos y autorización para ver el perfil de otro usuario")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "casos_manuales" in agents_ran
+    assert "seguridad" in agents_ran
     assert not any(r.error for r in result.results), result.results
 
 
