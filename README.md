@@ -48,6 +48,22 @@ cp .env.example .env
 
 ### 2. Correrlo directo (para probar)
 
+**Opción recomendada — sin instalar nada a mano:** si tenés
+[`uv`](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`, un
+solo binario, no depende de tener el venv ni las dependencias de Python ya instaladas):
+
+```bash
+uvx --from /ruta/a/maestro-qa maestro-qa-mcp
+```
+
+`uvx` resuelve e instala todas las dependencias en un entorno aislado y efímero la primera
+vez que corre (~1-2 segundos, se cachea después) — es la respuesta real a "¿y si la máquina
+de otra persona del equipo no tiene nada de esto instalado?": con `uv` presente, no hace
+falta nada más. Confirmado funcionando de punta a punta (protocolo MCP real, sin venv
+preexistente).
+
+**Opción manual (para desarrollo local, editando el código):**
+
 ```bash
 pip install -e .
 python -m maestro_qa.mcp_server
@@ -57,18 +73,27 @@ python -m maestro_qa.mcp_server
 Corre por stdio — no hay puerto que abrir, el cliente (Claude Code, Copilot, Codex, etc.)
 lo lanza como subproceso él mismo.
 
-**Ojo con el intérprete — bug real que encontramos probando esto:** si instalaste con
-`pip install -e .` dentro de un venv (`.venv/`, como en este repo), un `command: "python3"`
-genérico en la config del cliente puede resolver al Python **del sistema**, que no tiene
-`maestro_qa` instalado — el servidor falla al arrancar y el cliente reporta errores
-confusos ("not ready", "connection closed") en vez de "módulo no encontrado". Usá siempre
-el path **absoluto** al intérprete del venv:
+**Ojo con el intérprete si usás la opción manual — bug real que encontramos probando
+esto:** si instalaste con `pip install -e .` dentro de un venv (`.venv/`, como en este
+repo), un `command: "python3"` genérico en la config del cliente puede resolver al Python
+**del sistema**, que no tiene `maestro_qa` instalado — el servidor falla al arrancar y el
+cliente reporta errores confusos ("not ready", "connection closed") en vez de "módulo no
+encontrado". Usá siempre el path **absoluto** al intérprete del venv (o, más simple,
+`uvx` de arriba, que no tiene este problema):
 
 ```bash
 which python  # con el venv activado — ese es el path a usar, ej. /ruta/a/maestro-qa/.venv/bin/python
 ```
 
 ### 3. Registrarlo en Claude Code
+
+Con `uv` (nada que instalar antes en la máquina de quien lo use):
+
+```bash
+claude mcp add maestro-qa -- uvx --from /ruta/a/maestro-qa maestro-qa-mcp
+```
+
+O con el venv ya instalado a mano:
 
 ```bash
 claude mcp add maestro-qa -- /ruta/a/maestro-qa/.venv/bin/python -m maestro_qa.mcp_server
@@ -80,9 +105,8 @@ O agregando manualmente a `.mcp.json` en la raíz del proyecto donde se vaya a u
 {
   "mcpServers": {
     "maestro-qa": {
-      "command": "/ruta/a/maestro-qa/.venv/bin/python",
-      "args": ["-m", "maestro_qa.mcp_server"],
-      "cwd": "/ruta/a/maestro-qa"
+      "command": "uvx",
+      "args": ["--from", "/ruta/a/maestro-qa", "maestro-qa-mcp"]
     }
   }
 }
@@ -96,8 +120,9 @@ configuración de esta sección está probada, no es solo teórica.
 **Prerrequisitos:**
 - VS Code actualizado (soporte MCP nativo, sin flag experimental que activar).
 - Extensiones **GitHub Copilot** y **GitHub Copilot Chat** instaladas y con sesión iniciada.
-- Python del entorno donde corriste `pip install -e .` accesible desde la terminal que use
-  VS Code (mismo intérprete que usaste en el paso 2).
+- El venv instalado (`pip install -e .`, paso 2) — la config confirmada usa ese Python
+  directo. `uv`/`uvx` (misma idea que en Claude Code/Codex) debería funcionar igual acá,
+  pero esta sección puntual se probó con el venv, no con `uvx`.
 
 **Paso a paso:**
 
@@ -111,6 +136,20 @@ configuración de esta sección está probada, no es solo teórica.
          "command": "/ruta/a/maestro-qa/.venv/bin/python",
          "args": ["-m", "maestro_qa.mcp_server"],
          "cwd": "/ruta/a/maestro-qa"
+       }
+     }
+   }
+   ```
+
+   Alternativa sin venv preinstalado (no re-confirmada puntualmente en VS Code, mismo
+   mecanismo que en Claude Code/Codex):
+
+   ```json
+   {
+     "servers": {
+       "maestro-qa": {
+         "command": "uvx",
+         "args": ["--from", "/ruta/a/maestro-qa", "maestro-qa-mcp"]
        }
      }
    }
@@ -148,6 +187,16 @@ tiene la sintaxis vigente.
 **Confirmado funcionando con Codex CLI real (`codex-cli 0.146.0`, 2026-08-13)** — se
 registró el servidor y se probó `ensure_project` de punta a punta vía `codex exec`, sin
 mocks.
+
+Con `uv` (probado — sin venv preinstalado):
+
+```bash
+codex mcp add maestro-qa \
+  --env MAESTRO_ENV_FILE=/ruta/a/maestro-qa/.env \
+  -- uvx --from /ruta/a/maestro-qa maestro-qa-mcp
+```
+
+O con el venv ya instalado a mano:
 
 ```bash
 codex mcp add maestro-qa \

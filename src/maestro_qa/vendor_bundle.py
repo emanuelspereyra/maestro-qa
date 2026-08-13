@@ -1,10 +1,11 @@
 import os
 from pathlib import Path
 
-# ponytail: ruta relativa al repo — rompe si el paquete se instala fuera de este
-# repo. Ver specs/004-agente-casos-manuales.md backlog.
+# El bundle vive DENTRO del paquete (src/maestro_qa/vendor/...) a propósito — spec 021:
+# así queda incluido en cualquier instalación (editable, wheel, uvx, pipx), no solo en un
+# checkout completo del repo. Ruta relativa al propio paquete, no al repo.
 _DEFAULT_SCRIPTS_DIR = (
-    Path(__file__).resolve().parents[2]
+    Path(__file__).resolve().parent
     / "vendor"
     / "qa-intelligent-skill-bundle"
     / "skills"
