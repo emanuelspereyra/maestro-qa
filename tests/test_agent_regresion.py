@@ -6,17 +6,10 @@ from maestro_qa.agents.regresion import AGENT_REGISTRY, RegresionAgent
 from maestro_qa.orchestrator import Intake
 
 VALID_PAYLOAD = {
-    "change_description": "Se agregó login con Google además del login por email/password",
-    "regression_scope": "targeted",
-    "affected_areas": ["autenticación", "gestión de sesión"],
-    "priority_areas": [
-        {
-            "area": "autenticación",
-            "reason": "Nuevo flujo de login que puede romper el existente",
-            "scenario_families_to_recheck": ["happy-path", "unhappy-path"],
-        }
-    ],
-    "out_of_scope_areas": [],
+    "changed_areas": ["POST /auth/google/callback"],
+    "affected_cases": [{"case_id": "BE-TC-001", "reason": "Toca el mismo endpoint de callback"}],
+    "coverage_gaps": [],
+    "regression_priority": "targeted",
     "pending_items": [],
 }
 
@@ -33,48 +26,58 @@ def test_registers_itself():
     assert isinstance(AGENT_REGISTRY["regresion"], RegresionAgent)
 
 
-def test_valid_plan_renders_scope_and_priority_areas():
+def test_valid_plan_renders_priority_and_affected_cases():
     provider = FakeProvider(json.dumps(VALID_PAYLOAD))
-    intake = Intake(source="jira_ticket", text="agregamos login con Google, correr regresión")
+    intake = Intake(source="jira_ticket", text="se modificó el endpoint de login con Google")
 
     result = RegresionAgent().run(intake, provider)
 
     assert result.agent == "regresion"
-    assert "**targeted**" in result.content
-    assert "autenticación" in result.content
+    assert "Prioridad de regresión: targeted" in result.content
+    assert "BE-TC-001: Toca el mismo endpoint de callback" in result.content
 
 
-def test_pending_items_are_surfaced_not_hidden():
-    payload = {**VALID_PAYLOAD, "pending_items": ["Falta saber si el módulo de pagos depende de la sesión"]}
+def test_coverage_gaps_are_surfaced_not_invented():
+    payload = {**VALID_PAYLOAD, "coverage_gaps": ["No hay ningún caso para el manejo de token expirado"]}
     provider = FakeProvider(json.dumps(payload))
-    intake = Intake(source="spec", text="regresión del login")
+    intake = Intake(source="spec", text="cambio en el login")
 
     result = RegresionAgent().run(intake, provider)
 
-    assert "Falta saber si el módulo de pagos depende de la sesión" in result.content
+    assert "No hay ningún caso para el manejo de token expirado" in result.content
 
 
-def test_invalid_scope_raises():
-    payload = {**VALID_PAYLOAD, "regression_scope": "maxima"}
+def test_no_affected_cases_is_reported_not_hidden():
+    payload = {**VALID_PAYLOAD, "affected_cases": []}
     provider = FakeProvider(json.dumps(payload))
-    intake = Intake(source="spec", text="regresión del login")
+    intake = Intake(source="spec", text="cambio menor de estilos")
 
-    with pytest.raises(ValueError, match="regression_scope inválido"):
+    result = RegresionAgent().run(intake, provider)
+
+    assert "Ninguno todavía." in result.content
+
+
+def test_invalid_priority_raises():
+    payload = {**VALID_PAYLOAD, "regression_priority": "urgente"}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="cambio en el login")
+
+    with pytest.raises(ValueError, match="regression_priority inválida"):
         RegresionAgent().run(intake, provider)
 
 
-def test_empty_priority_areas_raises():
-    payload = {**VALID_PAYLOAD, "priority_areas": []}
+def test_empty_changed_areas_raises():
+    payload = {**VALID_PAYLOAD, "changed_areas": []}
     provider = FakeProvider(json.dumps(payload))
-    intake = Intake(source="spec", text="regresión del login")
+    intake = Intake(source="spec", text="cambio en el login")
 
-    with pytest.raises(ValueError, match="al menos un área prioritaria"):
+    with pytest.raises(ValueError, match="changed_areas"):
         RegresionAgent().run(intake, provider)
 
 
 def test_response_wrapped_in_markdown_fence_is_still_parsed():
     provider = FakeProvider(f"```json\n{json.dumps(VALID_PAYLOAD)}\n```")
-    intake = Intake(source="spec", text="regresión del login")
+    intake = Intake(source="spec", text="cambio en el login")
 
     result = RegresionAgent().run(intake, provider)
     assert "targeted" in result.content

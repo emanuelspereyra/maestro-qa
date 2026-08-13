@@ -170,6 +170,17 @@ DOCUMENTACION_RESPONSE = json.dumps(
 )
 
 
+REGRESION_RESPONSE = json.dumps(
+    {
+        "changed_areas": ["endpoint de login"],
+        "affected_cases": [{"case_id": "FE-TC-001", "reason": "cubre el login que cambió"}],
+        "coverage_gaps": [],
+        "regression_priority": "targeted",
+        "pending_items": [],
+    }
+)
+
+
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
 
@@ -188,6 +199,8 @@ class RoutingFakeProvider:
             return SEGURIDAD_RESPONSE
         if "doc_type" in system:
             return DOCUMENTACION_RESPONSE
+        if "changed_areas" in system:
+            return REGRESION_RESPONSE
         return CASES_RESPONSE
 
 
@@ -268,6 +281,16 @@ def test_documentacion_runs_alongside_casos_manuales():
     agents_ran = {r.agent for r in result.results}
     assert "casos_manuales" in agents_ran
     assert "documentacion" in agents_ran
+    assert not any(r.error for r in result.results), result.results
+
+
+def test_regresion_runs_alongside_casos_manuales():
+    intake = Intake(source="jira_ticket", text="Se modificó el endpoint de login, correr la regresión")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "casos_manuales" in agents_ran
+    assert "regresion" in agents_ran
     assert not any(r.error for r in result.results), result.results
 
 
