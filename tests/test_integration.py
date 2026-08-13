@@ -18,6 +18,7 @@ from maestro_qa.agents import (  # noqa: F401
     priorizacion_bugs,
     regresion,
     seguridad,
+    trazabilidad,
 )
 from maestro_qa.orchestrator import Intake, run
 
@@ -181,6 +182,16 @@ REGRESION_RESPONSE = json.dumps(
 )
 
 
+TRAZABILIDAD_RESPONSE = json.dumps(
+    {
+        "acceptance_criteria": [{"id": "AC-1", "text": "El usuario puede loguearse con Google"}],
+        "traceability_matrix": [{"criterion_id": "AC-1", "case_ids": ["FE-TC-001"], "status": "covered"}],
+        "untraceable_cases": [],
+        "pending_items": [],
+    }
+)
+
+
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
 
@@ -201,6 +212,8 @@ class RoutingFakeProvider:
             return DOCUMENTACION_RESPONSE
         if "changed_areas" in system:
             return REGRESION_RESPONSE
+        if "traceability_matrix" in system:
+            return TRAZABILIDAD_RESPONSE
         return CASES_RESPONSE
 
 
@@ -291,6 +304,16 @@ def test_regresion_runs_alongside_casos_manuales():
     agents_ran = {r.agent for r in result.results}
     assert "casos_manuales" in agents_ran
     assert "regresion" in agents_ran
+    assert not any(r.error for r in result.results), result.results
+
+
+def test_trazabilidad_runs_by_default_on_every_ticket():
+    intake = Intake(source="spec", text="Agregar un campo de teléfono al perfil")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "casos_manuales" in agents_ran
+    assert "trazabilidad" in agents_ran
     assert not any(r.error for r in result.results), result.results
 
 
