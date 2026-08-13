@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "generated_at": "",
+  "environments": {
+    "qa": {
+      "status": "incomplete",
+      "routes": {
+        "frontend_url": {
+          "status": "missing",
+          "url": "",
+          "variable": "QA_QA_FRONTEND_URL",
+          "sources": [],
+          "alternatives": []
+        },
+        "api_base_url": {
+          "status": "missing",
+          "url": "",
+          "variable": "QA_QA_API_BASE_URL",
+          "sources": [],
+          "alternatives": []
+        },
+        "auth_url": {
+          "status": "not-applicable",
+          "url": "",
+          "variable": "QA_QA_AUTH_URL",
+          "sources": [],
+          "alternatives": []
+        },
+        "admin_url": {
+          "status": "not-applicable",
+          "url": "",
+          "variable": "QA_QA_ADMIN_URL",
+          "sources": [],
+          "alternatives": []
+        },
+        "openapi_url": {
+          "status": "not-applicable",
+          "url": "",
+          "variable": "QA_QA_OPENAPI_URL",
+          "sources": [],
+          "alternatives": []
+        }
+      }
+    }
+  },
+  "unassigned_candidates": [],
+  "scan": {
+    "roots": [],
+    "files_scanned": 0,
+    "files_skipped": 0
+  }
+}

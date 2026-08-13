@@ -1,0 +1,313 @@
+{
+  "coverage": {
+    "required_layers": [
+      "frontend",
+      "backend"
+    ],
+    "required_scenario_families": [
+      "happy-path",
+      "unhappy-path",
+      "boundary"
+    ],
+    "blocked_scenarios": {},
+    "blocked_layers": {}
+  },
+  "cases": [
+    {
+      "case_id": "FE-TC-001",
+      "feature_id": "users.create",
+      "layer": "frontend",
+      "scenario_family": "happy-path",
+      "business_rule_ids": [
+        "BR-USERS-001"
+      ],
+      "coverage_dimensions": [
+        "authorized-role",
+        "valid-data",
+        "created-state"
+      ],
+      "title": "Crear usuario válido desde la interfaz",
+      "objective": "Verificar el flujo visible de creación de un usuario autorizado",
+      "sources": [
+        "REQ-001",
+        "frontend:/users/new"
+      ],
+      "work_item_ids": [
+        "JIRA:ABC-123"
+      ],
+      "confidence": "confirmed",
+      "priority": "high",
+      "risk": "authorization",
+      "execution_type": "both",
+      "preconditions": [
+        "Ambiente QA disponible",
+        "Sesión con rol autorizado"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Abrir el formulario de usuarios",
+          "expected": "El formulario muestra los campos y acciones esperados"
+        },
+        {
+          "order": 2,
+          "action": "Completar datos válidos y confirmar",
+          "expected": "La interfaz informa la creación y muestra el nuevo usuario"
+        }
+      ],
+      "expected_result": "El usuario queda creado y visible sin errores de interfaz",
+      "actual_result": "Pendiente",
+      "status": "NOT_EXECUTED",
+      "data_contract": {
+        "dataset_id": "DS-USERS-001",
+        "requirements": [
+          "Usuario único",
+          "Rol autorizado"
+        ],
+        "setup_method": "api",
+        "cleanup_method": "api"
+      },
+      "evidence_required": [
+        "screenshot",
+        "trace"
+      ],
+      "automation": {
+        "candidate": true,
+        "reason": "Flujo visible, repetible y crítico"
+      },
+      "derivation": {
+        "method": "acceptance-criterion",
+        "source_rule_ids": [
+          "BR-USERS-001"
+        ]
+      },
+      "tags": [
+        "users",
+        "frontend",
+        "smoke"
+      ]
+    },
+    {
+      "case_id": "BE-TC-001",
+      "feature_id": "users.create",
+      "layer": "backend",
+      "scenario_family": "happy-path",
+      "business_rule_ids": [
+        "BR-USERS-001"
+      ],
+      "coverage_dimensions": [
+        "authorized-role",
+        "valid-contract",
+        "persistence"
+      ],
+      "title": "Crear usuario válido mediante la API",
+      "objective": "Verificar contrato, autorización, reglas y persistencia al crear un usuario",
+      "sources": [
+        "REQ-001",
+        "api-catalog:POST /users"
+      ],
+      "work_item_ids": [
+        "JIRA:ABC-123"
+      ],
+      "confidence": "confirmed",
+      "priority": "high",
+      "risk": "authorization",
+      "execution_type": "both",
+      "preconditions": [
+        "API de QA disponible",
+        "Cliente autenticado con rol autorizado"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Enviar POST /users con un payload válido y único",
+          "expected": "La API responde con el estado y contrato documentados"
+        },
+        {
+          "order": 2,
+          "action": "Consultar el usuario creado",
+          "expected": "La API devuelve los datos persistidos sin exponer información sensible"
+        }
+      ],
+      "expected_result": "La API crea y persiste el usuario aplicando las reglas de negocio",
+      "actual_result": "Pendiente",
+      "status": "NOT_EXECUTED",
+      "data_contract": {
+        "dataset_id": "DS-USERS-001",
+        "requirements": [
+          "Usuario único",
+          "Rol autorizado"
+        ],
+        "setup_method": "api",
+        "cleanup_method": "api"
+      },
+      "evidence_required": [
+        "response",
+        "persistence-check"
+      ],
+      "automation": {
+        "candidate": true,
+        "reason": "Contrato y reglas deterministas"
+      },
+      "derivation": {
+        "method": "acceptance-criterion",
+        "source_rule_ids": [
+          "BR-USERS-001"
+        ]
+      },
+      "tags": [
+        "users",
+        "backend",
+        "smoke"
+      ]
+    },
+    {
+      "case_id": "FE-TC-002",
+      "feature_id": "users.create",
+      "layer": "frontend",
+      "scenario_family": "unhappy-path",
+      "business_rule_ids": ["BR-USERS-002"],
+      "coverage_dimensions": ["duplicate-email", "visible-validation"],
+      "title": "Rechazar un correo ya registrado desde la interfaz",
+      "objective": "Verificar la regla de unicidad y el mensaje visible",
+      "sources": ["REQ-001", "frontend:/users/new"],
+      "work_item_ids": ["JIRA:ABC-123"],
+      "confidence": "confirmed",
+      "priority": "high",
+      "risk": "data-integrity",
+      "execution_type": "both",
+      "preconditions": ["Existe un usuario con el correo del dataset"],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Intentar crear otro usuario con el mismo correo",
+          "expected": "La interfaz rechaza la acción y explica la duplicidad"
+        }
+      ],
+      "expected_result": "No se crea un segundo usuario y el formulario conserva un estado recuperable",
+      "actual_result": "Pendiente",
+      "status": "NOT_EXECUTED",
+      "data_contract": {
+        "dataset_id": "DS-USERS-DUPLICATE",
+        "requirements": ["Correo ya existente"],
+        "setup_method": "api",
+        "cleanup_method": "api"
+      },
+      "evidence_required": ["screenshot", "trace"],
+      "automation": {"candidate": true, "reason": "Regla determinista"},
+      "derivation": {"method": "equivalence-partition", "source_rule_ids": ["BR-USERS-002"]},
+      "tags": ["users", "frontend", "negative"]
+    },
+    {
+      "case_id": "FE-TC-003",
+      "feature_id": "users.create",
+      "layer": "frontend",
+      "scenario_family": "boundary",
+      "business_rule_ids": ["BR-USERS-003"],
+      "coverage_dimensions": ["name-max-length", "visible-validation"],
+      "title": "Crear usuario con el nombre en la longitud máxima",
+      "objective": "Verificar el límite aceptado por la interfaz",
+      "sources": ["REQ-001", "frontend:/users/new"],
+      "work_item_ids": ["JIRA:ABC-123"],
+      "confidence": "confirmed",
+      "priority": "medium",
+      "risk": "validation",
+      "execution_type": "both",
+      "preconditions": ["Longitud máxima confirmada"],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Crear un usuario con un nombre exactamente en el máximo permitido",
+          "expected": "La interfaz acepta el valor sin truncarlo"
+        }
+      ],
+      "expected_result": "El usuario se crea conservando el valor límite",
+      "actual_result": "Pendiente",
+      "status": "NOT_EXECUTED",
+      "data_contract": {
+        "dataset_id": "DS-USERS-BOUNDARY",
+        "requirements": ["Nombre en longitud máxima"],
+        "setup_method": "api",
+        "cleanup_method": "api"
+      },
+      "evidence_required": ["screenshot", "trace"],
+      "automation": {"candidate": true, "reason": "Límite determinista"},
+      "derivation": {"method": "boundary-value", "source_rule_ids": ["BR-USERS-003"]},
+      "tags": ["users", "frontend", "boundary"]
+    },
+    {
+      "case_id": "BE-TC-002",
+      "feature_id": "users.create",
+      "layer": "backend",
+      "scenario_family": "unhappy-path",
+      "business_rule_ids": ["BR-USERS-002"],
+      "coverage_dimensions": ["duplicate-email", "persistence"],
+      "title": "Rechazar un correo duplicado mediante la API",
+      "objective": "Verificar la unicidad, el contrato de error y la ausencia de persistencia duplicada",
+      "sources": ["REQ-001", "api-catalog:POST /users"],
+      "work_item_ids": ["JIRA:ABC-123"],
+      "confidence": "confirmed",
+      "priority": "high",
+      "risk": "data-integrity",
+      "execution_type": "both",
+      "preconditions": ["Existe un usuario con el correo del payload"],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Enviar POST /users con el correo ya existente",
+          "expected": "La API devuelve el error documentado y no crea otro registro"
+        }
+      ],
+      "expected_result": "La regla de unicidad se aplica de forma atómica",
+      "actual_result": "Pendiente",
+      "status": "NOT_EXECUTED",
+      "data_contract": {
+        "dataset_id": "DS-USERS-DUPLICATE",
+        "requirements": ["Correo ya existente"],
+        "setup_method": "api",
+        "cleanup_method": "api"
+      },
+      "evidence_required": ["response", "persistence-check"],
+      "automation": {"candidate": true, "reason": "Contrato de error determinista"},
+      "derivation": {"method": "equivalence-partition", "source_rule_ids": ["BR-USERS-002"]},
+      "tags": ["users", "backend", "negative"]
+    },
+    {
+      "case_id": "BE-TC-003",
+      "feature_id": "users.create",
+      "layer": "backend",
+      "scenario_family": "boundary",
+      "business_rule_ids": ["BR-USERS-003"],
+      "coverage_dimensions": ["name-max-length", "persistence"],
+      "title": "Persistir un nombre en la longitud máxima mediante la API",
+      "objective": "Verificar el límite del contrato y la persistencia sin truncamiento",
+      "sources": ["REQ-001", "api-catalog:POST /users"],
+      "work_item_ids": ["JIRA:ABC-123"],
+      "confidence": "confirmed",
+      "priority": "medium",
+      "risk": "validation",
+      "execution_type": "both",
+      "preconditions": ["Longitud máxima confirmada"],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Enviar POST /users con un nombre exactamente en el máximo permitido",
+          "expected": "La API acepta y persiste el valor completo"
+        }
+      ],
+      "expected_result": "El contrato y la base conservan el valor límite",
+      "actual_result": "Pendiente",
+      "status": "NOT_EXECUTED",
+      "data_contract": {
+        "dataset_id": "DS-USERS-BOUNDARY",
+        "requirements": ["Nombre en longitud máxima"],
+        "setup_method": "api",
+        "cleanup_method": "api"
+      },
+      "evidence_required": ["response", "persistence-check"],
+      "automation": {"candidate": true, "reason": "Límite y persistencia deterministas"},
+      "derivation": {"method": "boundary-value", "source_rule_ids": ["BR-USERS-003"]},
+      "tags": ["users", "backend", "boundary"]
+    }
+  ]
+}

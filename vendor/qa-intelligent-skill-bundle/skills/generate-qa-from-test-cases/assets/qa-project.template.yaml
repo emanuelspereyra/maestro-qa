@@ -1,0 +1,206 @@
+project:
+  name: ""
+  mode: "black-box"
+  environment: "qa"
+
+repositories:
+  layout: "none"
+  frontend:
+    url: ""
+    branch: "main"
+    path: ""
+    visibility: "unknown"
+    provider: ""
+    auth_method: ""
+    auth_configured: false
+    credential_env: ""
+    access_status: "not-checked"
+    clone_status: "not-cloned"
+    clone_path: ""
+    commit: ""
+  backend:
+    url: ""
+    branch: "main"
+    path: ""
+    visibility: "unknown"
+    provider: ""
+    auth_method: ""
+    auth_configured: false
+    credential_env: ""
+    access_status: "not-checked"
+    clone_status: "not-cloned"
+    clone_path: ""
+    commit: ""
+
+documentation:
+  sources: []
+
+task_boards:
+  enabled: false
+  provider: ""
+  base_url: ""
+  project: ""
+  board: ""
+  scope_type: "current-sprint"
+  scope_value: ""
+  query: ""
+  include_types:
+    - "epic"
+    - "feature"
+    - "user-story"
+    - "task"
+    - "bug"
+  include_comments: true
+  include_attachments: true
+  auth_method: ""
+  auth_configured: false
+  credential_env: ""
+  access_mode: "read-only"
+  access_status: "not-checked"
+  knowledge_path: "qa-knowledge/work-items.json"
+  write_enabled: false
+
+application:
+  frontend_url: ""
+  api_base_url: ""
+  auth_method: ""
+  test_users_available: false
+
+execution:
+  default_environment: "qa"
+  target_environment_env: "QA_TARGET_ENV"
+  allowed_environments:
+    - "qa"
+  allowed_environments_env: "QA_ALLOWED_ENVIRONMENTS"
+  variable_pattern: "QA_{ENV}_{SETTING}"
+  route_catalog_path: "qa-knowledge/environment-routes.json"
+  required_route_types:
+    - "frontend_url"
+    - "api_base_url"
+  discover_routes_before_prompting: true
+  allow_generic_fallback_env: "QA_ALLOW_GENERIC_ENV_FALLBACK"
+  allow_production_env: "QA_ALLOW_PRODUCTION"
+
+environment_files:
+  audit_enabled: true
+  create_if_missing: true
+  require_gitignore: true
+  permissions: "0600"
+  expose_values: false
+  projects:
+    frontend:
+      root: ""
+      env_file: ".env"
+      template: ""
+      status: "not-checked"
+    backend:
+      root: ""
+      env_file: ".env"
+      template: ""
+      status: "not-checked"
+    automation:
+      root: ""
+      env_file: ".env"
+      template: ""
+      status: "not-checked"
+    performance:
+      root: ""
+      env_file: ".env"
+      template: ""
+      status: "not-checked"
+
+gitignore:
+  audit_enabled: true
+  apply_project_defaults: true
+  managed_block: "qa-skill"
+  protect_examples: true
+  projects:
+    frontend:
+      root: ""
+      status: "not-checked"
+    backend:
+      root: ""
+      status: "not-checked"
+    automation:
+      root: "qa-automation"
+      status: "not-checked"
+    performance:
+      root: "qa-performance"
+      status: "not-checked"
+
+database:
+  access_level: "none"
+  engine: ""
+  host: ""
+  port: null
+  name: ""
+  authentication: ""
+  read_connection_env: "QA_{ENV}_DB_READ_CONNECTION"
+  write_connection_env: "QA_{ENV}_DB_WRITE_CONNECTION"
+  allow_write: false
+
+data_provisioning:
+  api_available: false
+  admin_ui_available: false
+  fixtures_available: false
+
+external_dependencies:
+  mocking_allowed: false
+  default_mode: "blocked"
+  bind_host: "127.0.0.1"
+  request_bodies_logged: false
+  services: []
+
+data_generation:
+  formats:
+    - "json"
+    - "csv"
+  csv_mode: "per-entity"
+  csv_encoding: "utf-8"
+  create_inventory: true
+  inventory_formats:
+    - "json"
+    - "csv"
+    - "markdown"
+  show_created_data_summary: true
+  require_seed_receipt: true
+
+verification_queries:
+  generate_after_execution: true
+  execute_automatically: false
+  require_filter: true
+  include_count_query: true
+  include_detail_query: true
+  output_dir: "qa-artifacts/data/verification"
+
+test_management:
+  provider: ""
+  project: ""
+  publish_enabled: false
+
+test_generation:
+  coverage_profile: "comprehensive"
+  required_layers:
+    - "frontend"
+    - "backend"
+  required_scenario_families:
+    - "happy-path"
+    - "unhappy-path"
+    - "boundary"
+  activate_domain_scenario_families: true
+  require_business_rule_mapping: true
+  pairwise_for_large_combinations: true
+  stop_on_semantic_saturation: true
+  include_e2e: true
+  require_explicit_blockers: true
+  manual_output_format: "spanish-block"
+
+tooling:
+  frontend: "playwright-python"
+  api: "pytest-httpx"
+  performance: "locust"
+
+paths:
+  knowledge: "qa-knowledge"
+  history: "qa-history"
+  artifacts: "qa-artifacts"

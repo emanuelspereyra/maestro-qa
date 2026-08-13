@@ -1,0 +1,6 @@
+interface:
+  display_name: "Start QA"
+  short_description: "Inicia el onboarding y flujo QA inteligente"
+  default_prompt: "Usá $start-qa para iniciar o continuar el flujo QA del proyecto actual."
+policy:
+  allow_implicit_invocation: false

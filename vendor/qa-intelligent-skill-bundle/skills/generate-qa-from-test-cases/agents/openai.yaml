@@ -1,0 +1,4 @@
+interface:
+  display_name: "QA inteligente desde casos"
+  short_description: "QA integral, datos, mocks y trazabilidad"
+  default_prompt: "Usa $generate-qa-from-test-cases para descubrir la lógica de negocio, generar cobertura integral y preparar datos trazables con mocks externos y consultas de verificación seguras."

@@ -1,0 +1,88 @@
+{
+  "dataset_id": "DS-TC-001",
+  "run_id": "RUN-EXAMPLE",
+  "seed": 12345,
+  "entities": [
+    {
+      "name": "users",
+      "target": "dbo.users",
+      "collection": "users",
+      "run_id_field": "qa_run_id",
+      "identifier_fields": [
+        "id",
+        "email"
+      ],
+      "display_fields": [
+        "username",
+        "role",
+        "active"
+      ],
+      "sensitive_fields": [],
+      "count": 2,
+      "fields": {
+        "id": {
+          "type": "uuid"
+        },
+        "username": {
+          "type": "username",
+          "prefix": "qa"
+        },
+        "email": {
+          "type": "email",
+          "domain": "example.test"
+        },
+        "role": {
+          "type": "choice",
+          "values": [
+            "tester"
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "qa_run_id": {
+          "type": "run_id"
+        }
+      }
+    },
+    {
+      "name": "items",
+      "target": "dbo.items",
+      "collection": "items",
+      "run_id_field": "qa_run_id",
+      "identifier_fields": [
+        "id",
+        "owner_id"
+      ],
+      "display_fields": [
+        "name",
+        "quantity"
+      ],
+      "sensitive_fields": [],
+      "count": 2,
+      "fields": {
+        "id": {
+          "type": "uuid"
+        },
+        "owner_id": {
+          "type": "ref",
+          "entity": "users",
+          "field": "id"
+        },
+        "name": {
+          "type": "string",
+          "prefix": "QA Item",
+          "length": 12
+        },
+        "quantity": {
+          "type": "integer",
+          "min": 1,
+          "max": 10
+        },
+        "qa_run_id": {
+          "type": "run_id"
+        }
+      }
+    }
+  ]
+}
