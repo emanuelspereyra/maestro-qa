@@ -13,6 +13,7 @@ from maestro_qa.agents import (  # noqa: F401
     automatizacion_api,
     casos_manuales,
     datos_prueba,
+    documentacion,
     performance,
     priorizacion_bugs,
     seguridad,
@@ -157,6 +158,17 @@ SEGURIDAD_RESPONSE = json.dumps(
 )
 
 
+DOCUMENTACION_RESPONSE = json.dumps(
+    {
+        "doc_type": "user_guide",
+        "title": "Iniciar sesión con Google",
+        "summary": "Los usuarios pueden loguearse con su cuenta de Google.",
+        "sections": [{"heading": "Cómo usarlo", "content": "Click en el botón de Google en el login."}],
+        "pending_items": [],
+    }
+)
+
+
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
 
@@ -173,6 +185,8 @@ class RoutingFakeProvider:
             return AUTOMATIZACION_API_RESPONSE
         if "severity_if_fails" in system:
             return SEGURIDAD_RESPONSE
+        if "doc_type" in system:
+            return DOCUMENTACION_RESPONSE
         return CASES_RESPONSE
 
 
@@ -243,6 +257,16 @@ def test_seguridad_runs_alongside_casos_manuales():
     agents_ran = {r.agent for r in result.results}
     assert "casos_manuales" in agents_ran
     assert "seguridad" in agents_ran
+    assert not any(r.error for r in result.results), result.results
+
+
+def test_documentacion_runs_alongside_casos_manuales():
+    intake = Intake(source="jira_ticket", text="Documentar el login con Google para el manual de usuario")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "casos_manuales" in agents_ran
+    assert "documentacion" in agents_ran
     assert not any(r.error for r in result.results), result.results
 
 
