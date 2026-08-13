@@ -5,15 +5,16 @@ from maestro_qa.orchestrator import AgentResult, Intake, classify_agents, run
 
 
 class FakeAgent:
-    def __init__(self, name, content="ok", raises=False):
+    def __init__(self, name, content="ok", raises=False, artifacts=None):
         self.name = name
         self.content = content
         self.raises = raises
+        self.artifacts = artifacts or {}
 
     def run(self, intake, provider):
         if self.raises:
             raise RuntimeError(f"{self.name} broke")
-        return AgentResult(agent=self.name, content=self.content)
+        return AgentResult(agent=self.name, content=self.content, artifacts=self.artifacts)
 
 
 @pytest.fixture
@@ -77,6 +78,46 @@ def test_release_readiness_runs_last_with_aggregated_input(clean_registry):
     assert result.results[-1].agent == "release_readiness"
     assert "3 casos" in captured["text"]
     assert "100% cubierto" in captured["text"]
+
+
+def test_casos_manuales_context_is_injected_into_other_agents(clean_registry):
+    clean_registry["casos_manuales"] = FakeAgent(
+        "casos_manuales", content="1 caso", artifacts={"cases": [{"case_id": "FE-TC-001"}]}
+    )
+
+    captured = {}
+
+    class SpyAgent:
+        def run(self, intake, provider):
+            captured["text"] = intake.text
+            return AgentResult(agent="seguridad", content="ok")
+
+    clean_registry["seguridad"] = SpyAgent()
+
+    intake = Intake(source="jira_ticket", text="revisar permisos de acceso")
+    run(intake, provider=None)
+
+    assert "Casos de prueba ya generados" in captured["text"]
+    assert "FE-TC-001" in captured["text"]
+
+
+def test_casos_manuales_error_does_not_inject_broken_context(clean_registry):
+    clean_registry["casos_manuales"] = FakeAgent("casos_manuales", raises=True)
+
+    captured = {}
+
+    class SpyAgent:
+        def run(self, intake, provider):
+            captured["text"] = intake.text
+            return AgentResult(agent="seguridad", content="ok")
+
+    clean_registry["seguridad"] = SpyAgent()
+
+    intake = Intake(source="jira_ticket", text="revisar permisos de acceso")
+    run(intake, provider=None)
+
+    assert captured["text"] == intake.text
+    assert "Casos de prueba ya generados" not in captured["text"]
 
 
 def test_adding_agent_needs_no_orchestrator_change(clean_registry):

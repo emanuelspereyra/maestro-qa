@@ -19,6 +19,9 @@ proyecto vía conftest.py) — nunca hardcodear URLs ni ambientes.
 `time.sleep`.
 - Si falta una URL, selector, dato o contrato para escribir el código real, NO lo inventes: \
 agregalo a `pending_items` y dejá ese punto del código con un comentario `# TODO:` claro.
+- Si el mensaje incluye una sección "Casos de prueba ya generados", el test que escribas \
+tiene que automatizar EXACTAMENTE los `steps` de los casos con layer "frontend" y \
+execution_type "automated" o "both" — no un flujo distinto inventado del ticket.
 
 Devolvé EXCLUSIVAMENTE un objeto JSON (sin texto adicional, sin markdown) con estos campos:
 {

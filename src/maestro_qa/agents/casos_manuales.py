@@ -111,7 +111,11 @@ class CasosManualesAgent:
             f"Cobertura: {report['delivery_status']} — {report['case_count']} casos, "
             f"capas {report['layer_counts']}"
         )
-        return AgentResult(agent="casos_manuales", content=f"{summary}\n\n{rendered}")
+        return AgentResult(
+            agent="casos_manuales",
+            content=f"{summary}\n\n{rendered}",
+            artifacts={"cases": cases},
+        )
 
 
 AGENT_REGISTRY["casos_manuales"] = CasosManualesAgent()

@@ -120,3 +120,26 @@ def test_datos_prueba_runs_alongside_casos_manuales(tmp_path, monkeypatch):
     assert "casos_manuales" in agents_ran
     assert "datos_prueba" in agents_ran
     assert not any(r.error for r in result.results), result.results
+
+
+class RecordingRoutingFakeProvider(RoutingFakeProvider):
+    """Igual que RoutingFakeProvider, pero guarda cada mensaje recibido por agente."""
+
+    def __init__(self):
+        self.calls: list[tuple[str, str]] = []
+
+    def complete(self, system, messages, **kwargs):
+        self.calls.append((system, messages[0]["content"]))
+        return super().complete(system, messages, **kwargs)
+
+
+def test_datos_prueba_receives_the_dataset_id_from_casos_manuales(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    provider = RecordingRoutingFakeProvider()
+    intake = Intake(source="jira_ticket", text="Necesito un dataset de usuarios de prueba")
+
+    run(intake, provider=provider)
+
+    datos_prueba_message = next(text for system, text in provider.calls if "sensitive_fields" in system)
+    assert "DS-AUTH-001" in datos_prueba_message
+    assert "Casos de prueba ya generados" in datos_prueba_message

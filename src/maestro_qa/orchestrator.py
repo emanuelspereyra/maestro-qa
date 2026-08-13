@@ -24,6 +24,7 @@ _KEYWORD_AGENTS = {
 }
 
 _RELEASE_READINESS = "release_readiness"
+_CASOS_MANUALES = "casos_manuales"
 
 
 @dataclass
@@ -37,6 +38,7 @@ class AgentResult:
     agent: str
     content: str
     error: bool = False
+    artifacts: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -117,13 +119,37 @@ def _end_history(history_dir: Path, run_id: str) -> None:
         pass
 
 
+def _with_casos_context(intake: Intake, casos_result: AgentResult | None) -> Intake:
+    if casos_result is None or casos_result.error:
+        return intake
+    cases = casos_result.artifacts.get("cases")
+    if not cases:
+        return intake
+    cases_json = json.dumps(cases, ensure_ascii=False)
+    return Intake(
+        source=intake.source,
+        text=f"{intake.text}\n\nCasos de prueba ya generados:\n{cases_json}",
+    )
+
+
 def run(intake: Intake, provider: Provider, history_dir: Path | None = None) -> RunResult:
+    # casos_manuales corre primero: los demás agentes de contenido usan sus data_contract/
+    # steps reales en vez de reinterpretar el ticket de forma independiente (spec 008).
     selected = classify_agents(intake)
+    ordered = sorted(selected, key=lambda name: 0 if name == _CASOS_MANUALES else 1)
     run_id = _start_history(history_dir, intake) if history_dir else None
 
-    results = [_run_agent(name, intake, provider) for name in selected if name in AGENT_REGISTRY]
-    if run_id and history_dir:
-        for result in results:
+    results: list[AgentResult] = []
+    casos_result: AgentResult | None = None
+    for name in ordered:
+        if name not in AGENT_REGISTRY:
+            continue
+        agent_intake = intake if name == _CASOS_MANUALES else _with_casos_context(intake, casos_result)
+        result = _run_agent(name, agent_intake, provider)
+        if name == _CASOS_MANUALES:
+            casos_result = result
+        results.append(result)
+        if run_id and history_dir:
             _log_history(history_dir, run_id, result)
 
     if _RELEASE_READINESS in AGENT_REGISTRY:

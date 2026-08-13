@@ -70,11 +70,9 @@ y, si hay `pending_items`, los lista de forma visible — no los oculta en el JS
 - Si el LLM reporta `pending_items`, aparecen en el `content` del resultado, no se pierden.
 
 ## Fuera de alcance / backlog
-- **Encadenar con los casos de `casos_manuales`** — mejora real (automatizar exactamente el
-  caso que el otro agente ya definió, no una interpretación independiente del ticket).
-  Requiere que el orquestador pase resultados entre agentes de contenido, no solo hacia
-  `release_readiness`. Se hace cuando la duplicación de lógica entre ambos agentes sea un
-  problema real, no antes.
+- ~~**Encadenar con los casos de `casos_manuales`**~~ — resuelto por
+  [008-encadenar-casos-manuales.md](008-encadenar-casos-manuales.md): el prompt ahora
+  automatiza los `steps` reales cuando el orquestador inyecta los casos ya generados.
 - **Ejecutar el test generado** — necesita un browser real, credenciales de ambiente QA y
   la app corriendo; ninguna de esas piezas existe todavía en el proyecto.
 - **Automatización de API (backend)** — agente nuevo si CDA lo pide, no parte de este.

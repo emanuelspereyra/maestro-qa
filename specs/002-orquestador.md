@@ -67,6 +67,7 @@ registrado. Esto permite que esta spec y su implementación avancen sin esperar 
 - Agregar un agente nuevo al registry no requiere tocar `orchestrator.py`.
 
 ## Fuera de alcance / backlog
+- ~~**Encadenar agentes de contenido entre sí**~~ — resuelto por [008-encadenar-casos-manuales.md](008-encadenar-casos-manuales.md): `casos_manuales` corre primero y su resultado se inyecta como contexto en los demás agentes de contenido, no solo en `release_readiness`.
 - **Fetch real desde la API de Jira** — v1 asume que el texto del ticket ya llega como
   string. Cuando se pida, se resuelve agregando un adaptador de intake nuevo, sin tocar
   `classify_agents` ni la agregación.

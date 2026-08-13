@@ -64,6 +64,7 @@ def test_valid_cases_produce_result_with_summary_and_render():
     assert result.agent == "casos_manuales"
     assert "Cobertura:" in result.content
     assert "Crear usuario válido" in result.content
+    assert result.artifacts["cases"] == cases
 
 
 def test_invalid_cases_raise_with_validation_errors():

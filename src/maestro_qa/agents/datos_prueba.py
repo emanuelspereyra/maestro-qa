@@ -13,6 +13,12 @@ _SYSTEM_PROMPT = """Sos un agente de QA que describe la FORMA de un dataset de p
 partir de un ticket o feature — no generás los valores, eso lo hace un generador \
 determinista aparte.
 
+Si el mensaje incluye una sección "Casos de prueba ya generados" con casos que tienen \
+"data_contract" (dataset_id, requirements), tu dataset-spec DEBE cubrir esos requirements \
+reales — usá el mismo dataset_id que aparece ahí en vez de inventar uno nuevo, y una \
+entidad/campo por cada requirement listado. Si no hay esa sección, describí el dataset a \
+partir del ticket como siempre.
+
 Devolvé EXCLUSIVAMENTE un objeto JSON (sin texto adicional, sin markdown) con este \
 contrato:
 {
