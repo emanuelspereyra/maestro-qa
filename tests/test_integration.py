@@ -17,6 +17,7 @@ from maestro_qa.agents import (  # noqa: F401
     performance,
     priorizacion_bugs,
     regresion,
+    release_readiness,
     seguridad,
     trazabilidad,
 )
@@ -192,6 +193,16 @@ TRAZABILIDAD_RESPONSE = json.dumps(
 )
 
 
+RELEASE_READINESS_RESPONSE = json.dumps(
+    {
+        "overall_status": "GO",
+        "summary": "Todos los agentes corrieron sin errores.",
+        "blocking_issues": [],
+        "non_blocking_notes": [],
+    }
+)
+
+
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
 
@@ -214,6 +225,8 @@ class RoutingFakeProvider:
             return REGRESION_RESPONSE
         if "traceability_matrix" in system:
             return TRAZABILIDAD_RESPONSE
+        if "blocking_issues" in system:
+            return RELEASE_READINESS_RESPONSE
         return CASES_RESPONSE
 
 
@@ -314,6 +327,16 @@ def test_trazabilidad_runs_by_default_on_every_ticket():
     agents_ran = {r.agent for r in result.results}
     assert "casos_manuales" in agents_ran
     assert "trazabilidad" in agents_ran
+    assert not any(r.error for r in result.results), result.results
+
+
+def test_release_readiness_runs_last_and_completes_the_ten_agent_fleet():
+    intake = Intake(source="jira_ticket", text="Agregar un campo de teléfono al perfil")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = [r.agent for r in result.results]
+    assert agents_ran[-1] == "release_readiness"
+    assert "casos_manuales" in agents_ran
     assert not any(r.error for r in result.results), result.results
 
 

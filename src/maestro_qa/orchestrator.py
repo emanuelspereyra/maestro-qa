@@ -164,10 +164,10 @@ def run(intake: Intake, provider: Provider, history_dir: Path | None = None) -> 
             _log_history(history_dir, run_id, result)
 
     if _RELEASE_READINESS in AGENT_REGISTRY:
-        readiness_intake = Intake(
-            source=intake.source,
-            text="\n\n".join(f"{r.agent}: {r.content}" for r in results),
-        )
+        error_agents = [r.agent for r in results if r.error]
+        header = f"Agentes con error: {', '.join(error_agents) if error_agents else 'ninguno'}"
+        body = "\n\n".join(f"{r.agent}{' (ERROR)' if r.error else ''}: {r.content}" for r in results)
+        readiness_intake = Intake(source=intake.source, text=f"{header}\n\n{body}")
         readiness_result = _run_agent(_RELEASE_READINESS, readiness_intake, provider)
         results.append(readiness_result)
         if run_id and history_dir:

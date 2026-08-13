@@ -65,6 +65,45 @@ def test_run_captures_partial_failure_without_aborting(clean_registry):
     assert by_agent["trazabilidad"].content == "cobertura ok"
 
 
+def test_release_readiness_intake_flags_agents_with_error(clean_registry):
+    clean_registry["casos_manuales"] = FakeAgent("casos_manuales", raises=True)
+    clean_registry["trazabilidad"] = FakeAgent("trazabilidad", content="ok")
+
+    captured = {}
+
+    class ReadinessAgent:
+        def run(self, intake, provider):
+            captured["text"] = intake.text
+            return AgentResult(agent="release_readiness", content="go")
+
+    clean_registry["release_readiness"] = ReadinessAgent()
+
+    intake = Intake(source="spec", text="feature sin keywords")
+    run(intake, provider=None)
+
+    assert "Agentes con error: casos_manuales" in captured["text"]
+    assert "casos_manuales (ERROR):" in captured["text"]
+
+
+def test_release_readiness_intake_says_no_errors_when_all_succeed(clean_registry):
+    clean_registry["casos_manuales"] = FakeAgent("casos_manuales", content="3 casos")
+    clean_registry["trazabilidad"] = FakeAgent("trazabilidad", content="ok")
+
+    captured = {}
+
+    class ReadinessAgent:
+        def run(self, intake, provider):
+            captured["text"] = intake.text
+            return AgentResult(agent="release_readiness", content="go")
+
+    clean_registry["release_readiness"] = ReadinessAgent()
+
+    intake = Intake(source="spec", text="feature sin keywords")
+    run(intake, provider=None)
+
+    assert "Agentes con error: ninguno" in captured["text"]
+
+
 def test_release_readiness_runs_last_with_aggregated_input(clean_registry):
     clean_registry["casos_manuales"] = FakeAgent("casos_manuales", content="3 casos")
     clean_registry["trazabilidad"] = FakeAgent("trazabilidad", content="100% cubierto")
