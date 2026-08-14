@@ -94,3 +94,15 @@ def test_invalid_test_type_raises():
 
     with pytest.raises(ValueError, match="test_type inválido"):
         PerformanceAgent().run(intake, provider)
+
+
+def test_test_type_with_different_casing_is_normalized_not_rejected():
+    # bug real (spec 022): el LLM puede devolver "Load" en vez de "load" pese al system
+    # prompt en minúsculas; antes esto rompía con "test_type inválido".
+    payload = {**VALID_PAYLOAD, "test_type": "Load"}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="probar carga del checkout")
+
+    result = PerformanceAgent().run(intake, provider)
+
+    assert "Tipo de ensayo: load" in result.content

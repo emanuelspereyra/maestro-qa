@@ -52,6 +52,8 @@ class PerformanceAgent:
     def run(self, intake: Intake, provider: Provider) -> AgentResult:
         raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
         payload = json.loads(extract_json(raw, dict))
+        if isinstance(payload.get("test_type"), str):
+            payload["test_type"] = payload["test_type"].strip().lower()
         _validate(payload)
 
         try:
