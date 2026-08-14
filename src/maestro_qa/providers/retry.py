@@ -1,5 +1,8 @@
 import time
 from collections.abc import Callable
+from typing import TypeVar
+
+T = TypeVar("T")
 
 
 class ProviderError(Exception):
@@ -7,11 +10,11 @@ class ProviderError(Exception):
 
 
 def with_retries(
-    fn: Callable[[], str],
+    fn: Callable[[], T],
     is_transient: Callable[[Exception], bool],
     max_attempts: int = 3,
     backoff_base: float = 1.0,
-) -> str:
+) -> T:
     attempt = 0
     while True:
         try:

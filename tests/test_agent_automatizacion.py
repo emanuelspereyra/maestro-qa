@@ -1,7 +1,10 @@
 import json
+import subprocess
 
 import pytest
+import yaml
 
+from maestro_qa import repo_access
 from maestro_qa.agents.automatizacion import AGENT_REGISTRY, AutomatizacionAgent
 from maestro_qa.orchestrator import Intake
 
@@ -100,3 +103,90 @@ def test_response_with_trailing_prose_and_stray_brace_is_still_parsed():
 
     result = AutomatizacionAgent().run(intake, provider)
     assert "GoogleLoginPage" in result.content
+
+
+def _git(args, cwd):
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True)
+
+
+@pytest.fixture
+def frontend_project(tmp_path, monkeypatch):
+    """qa-project.yaml en tmp_path apuntando a un repo git real y local — mismo patrón
+    que test_repo_access.py, para probar el flujo de acceso a repo de punta a punta."""
+    remote = tmp_path / "remote"
+    remote.mkdir()
+    _git(["init", "-q", "--initial-branch=main"], remote)
+    _git(["config", "user.email", "test@example.com"], remote)
+    _git(["config", "user.name", "Test"], remote)
+    (remote / "src").mkdir()
+    (remote / "src" / "login.jsx").write_text("export const Login = () => <button>Login</button>\n")
+    _git(["add", "-A"], remote)
+    _git(["commit", "-q", "-m", "init"], remote)
+
+    qa_project = tmp_path / "qa-project.yaml"
+    qa_project.write_text(
+        yaml.safe_dump({"repositories": {"frontend": {"url": str(remote), "branch": "main"}}}), encoding="utf-8"
+    )
+    monkeypatch.setattr(repo_access, "_CACHE_ROOT", tmp_path / "cache")
+    monkeypatch.chdir(tmp_path)
+    return remote
+
+
+class ToolUsingFakeProvider:
+    """Simula lo que un Provider real con tool-calling haría: llama al tool_executor una
+    vez (como si el LLM hubiese pedido `write_file`) antes de devolver el JSON final."""
+
+    def __init__(self, response: str, tool_call: tuple[str, dict]):
+        self._response = response
+        self._tool_call = tool_call
+
+    def complete(self, system, messages, tools=None, tool_executor=None, **kwargs):
+        assert tools is not None
+        assert tool_executor is not None
+        name, args = self._tool_call
+        tool_executor(name, args)
+        return self._response
+
+
+def test_uses_repo_tools_when_frontend_repo_is_configured(frontend_project):
+    provider = ToolUsingFakeProvider(
+        json.dumps(VALID_PAYLOAD),
+        tool_call=(
+            "write_file",
+            {"path": "src/login.jsx", "content": "<button data-testid='id-testautomation-login'>Login</button>\n"},
+        ),
+    )
+    intake = Intake(source="spec", text="login con Google")
+
+    result = AutomatizacionAgent().run(intake, provider)
+
+    assert "Cambios en el repo de frontend" in result.content
+    assert "automatizacion/google-login-page-" in result.content
+    assert "No se pusheó" in result.content
+
+
+def test_falls_back_to_blind_generation_without_frontend_repo_configured():
+    # sin qa-project.yaml en el cwd de test — mismo comportamiento de siempre (spec 005)
+    provider = FakeProvider(json.dumps(VALID_PAYLOAD))
+    intake = Intake(source="spec", text="login con Google")
+
+    result = AutomatizacionAgent().run(intake, provider)
+
+    assert "Cambios en el repo de frontend" not in result.content
+
+
+def test_repo_access_failure_is_surfaced_as_pending_item_not_a_crash(tmp_path, monkeypatch):
+    qa_project = tmp_path / "qa-project.yaml"
+    qa_project.write_text(
+        yaml.safe_dump({"repositories": {"frontend": {"url": str(tmp_path / "no-existe"), "branch": "main"}}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(repo_access, "_CACHE_ROOT", tmp_path / "cache")
+    monkeypatch.chdir(tmp_path)
+
+    provider = FakeProvider(json.dumps(VALID_PAYLOAD))
+    intake = Intake(source="spec", text="login con Google")
+
+    result = AutomatizacionAgent().run(intake, provider)
+
+    assert "No se pudo usar el repo de frontend" in result.content
