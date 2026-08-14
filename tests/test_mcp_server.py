@@ -86,6 +86,21 @@ def test_run_qa_runs_real_registered_agents_end_to_end(tmp_path, monkeypatch):
     assert "release_readiness" in result
 
 
+def test_all_routable_agents_are_registered_by_mcp_server():
+    # bug real (2026-08-14): calidad_codigo (spec 025) se agregó al routing del
+    # orquestador pero se olvidó en la lista de imports de mcp_server.py -- en el
+    # servidor MCP real (la única forma en que un usuario final corre esto) el agente
+    # nunca se registraba y quedaba mudo aunque el ticket lo pidiera explícitamente.
+    # orchestrator.py no importa los agentes él mismo a propósito (evita import
+    # circular) -- este test asegura que ningún agente ruteable quede sin importar acá.
+    from maestro_qa.agents.registry import AGENT_REGISTRY
+    from maestro_qa.orchestrator import _DEFAULT_AGENTS, _KEYWORD_AGENTS, _RELEASE_READINESS
+
+    expected = set(_DEFAULT_AGENTS) | set(_KEYWORD_AGENTS) | {_RELEASE_READINESS}
+    missing = expected - set(AGENT_REGISTRY)
+    assert not missing, f"agentes ruteables por el orquestador pero no registrados: {missing}"
+
+
 def test_ensure_project_impl_creates_qa_project_yaml(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
