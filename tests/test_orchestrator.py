@@ -45,6 +45,12 @@ def test_keyword_routes_backend_api_automation():
     assert "automatizacion_api" in selected
 
 
+def test_keyword_routes_bug_explorer():
+    intake = Intake(source="jira_ticket", text="necesito la causa raíz de por qué falla el checkout")
+    selected = classify_agents(intake)
+    assert "bug_explorer" in selected
+
+
 # bug real (spec 022): tildes omitidas en tickets escritos rápido no matcheaban ningún
 # keyword para documentacion/regresion/performance.
 @pytest.mark.parametrize(

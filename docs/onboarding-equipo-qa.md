@@ -60,6 +60,7 @@ las digas exactas, alcanza con que el ticket hable naturalmente del tema):
 | `documentacion` | documentar, manual de usuario | Changelog / guía de usuario / referencia técnica según lo que el ticket pida |
 | `regresion` | regresión, suite completa | Qué áreas ya cubiertas por casos anteriores hay que re-verificar por este cambio |
 | `calidad_codigo` | revisar código, code review, refactor | Revisión de sobre-ingeniería/código innecesario — ver más abajo |
+| `bug_explorer` | causa raíz, root cause, traza el bug, por qué falla | Causas probables de un bug, con archivo:línea si hay repo conectado — ver más abajo |
 
 Y al final de todo corre **`release_readiness`**: lee el resultado de todos los demás y te
 da un veredicto — `GO`, `GO_WITH_CONDITIONS` o `NO_GO` — con el motivo. Si algún agente
@@ -113,6 +114,17 @@ hallazgos para justificar la corrida.
 
 También podés correrlo solo, sobre un archivo o diff puntual, sin pasar por un ticket
 completo — pedile a quien lo instaló el comando exacto (`scripts/revisar_codigo.py`).
+
+## `bug_explorer`: trazar un bug a su causa probable
+
+Describís el bug (síntoma, pasos para reproducirlo, qué esperabas vs. qué pasó) y el
+agente propone dónde está probablemente el problema. Si el proyecto tiene el repo de
+frontend conectado, va a explorar el código real y darte un archivo y línea concretos;
+si no lo tiene, te da una hipótesis en términos generales — **nunca te va a mostrar un
+archivo/línea inventado**, si no puede confirmarlo contra código real te lo dice.
+
+Pedilo con frases como "cuál es la causa raíz de..." o "por qué falla...". Es de solo
+lectura, igual que `calidad_codigo` — nunca toca el código, solo lo lee para razonar.
 
 ## Casos publicados en Azure DevOps (si está conectado)
 

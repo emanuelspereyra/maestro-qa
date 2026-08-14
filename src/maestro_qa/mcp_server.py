@@ -11,6 +11,7 @@ from . import config, onboarding, readers
 from .agents import (  # noqa: F401
     automatizacion,
     automatizacion_api,
+    bug_explorer,
     calidad_codigo,
     casos_manuales,
     datos_prueba,

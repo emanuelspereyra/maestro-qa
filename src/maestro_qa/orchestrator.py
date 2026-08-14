@@ -33,6 +33,7 @@ _KEYWORD_AGENTS = {
     "performance": ["performance", "prueba de carga", "estrés", "estres", "latencia", "throughput"],
     "seguridad": ["seguridad", "vulnerabilidad", "owasp", "auth", "permisos"],
     "calidad_codigo": ["revisar código", "code review", "refactor", "calidad de código", "simplificar código"],
+    "bug_explorer": ["causa raíz", "causa del bug", "root cause", "traza el bug", "por qué falla", "explorar bug"],
 }
 
 _RELEASE_READINESS = "release_readiness"

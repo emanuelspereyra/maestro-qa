@@ -11,6 +11,7 @@ import json
 from maestro_qa.agents import (  # noqa: F401
     automatizacion,
     automatizacion_api,
+    bug_explorer,
     calidad_codigo,
     casos_manuales,
     datos_prueba,
@@ -205,6 +206,8 @@ RELEASE_READINESS_RESPONSE = json.dumps(
 
 CALIDAD_CODIGO_RESPONSE = json.dumps({"findings": [], "pending_items": []})
 
+BUG_EXPLORER_RESPONSE = json.dumps({"likely_causes": [], "pending_items": []})
+
 
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
@@ -232,6 +235,8 @@ class RoutingFakeProvider:
             return RELEASE_READINESS_RESPONSE
         if "findings" in system:
             return CALIDAD_CODIGO_RESPONSE
+        if "likely_causes" in system:
+            return BUG_EXPLORER_RESPONSE
         return CASES_RESPONSE
 
 
@@ -398,3 +403,13 @@ def test_calidad_codigo_receives_the_code_generated_by_automatizacion_in_the_sam
     calidad_codigo_message = next(text for system, text in provider.calls if "findings" in system)
     assert "Código generado en este run" in calidad_codigo_message
     assert "GoogleLoginPage" in calidad_codigo_message
+
+
+def test_bug_explorer_runs_alongside_casos_manuales(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    intake = Intake(source="jira_ticket", text="traza el bug: el login con Google no redirige")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "bug_explorer" in agents_ran
+    assert not any(r.error for r in result.results), result.results

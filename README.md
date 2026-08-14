@@ -3,7 +3,7 @@
 Orquestador multi-agente de testing. Recibe una tarea (ticket de Jira o spec/PRD) y
 reparte el trabajo entre agentes especializados (casos manuales, automatización, datos de
 prueba, priorización de bugs, regresión, performance, seguridad, trazabilidad, calidad de
-código, release-readiness). Se expone como servidor MCP — usable desde Claude Code, GitHub
+código, exploración de bugs, release-readiness). Se expone como servidor MCP — usable desde Claude Code, GitHub
 Copilot y Codex CLI sin integración adicional (protocolo genérico, confirmado con los 3).
 
 Ver [`specs/000-arquitectura.md`](specs/000-arquitectura.md) para el diseño completo.
@@ -299,4 +299,18 @@ Para correrlo standalone sobre un archivo o diff puntual, sin pasar por el orque
 ```bash
 MAESTRO_PROVIDER=anthropic MAESTRO_MODEL=claude-sonnet-5 MAESTRO_API_KEY=sk-... \
     python scripts/revisar_codigo.py ruta/al/archivo_o_diff
+```
+
+## Trazar un bug (bug_explorer, spec 029)
+
+El agente `bug_explorer` toma la descripción de un bug (síntoma, pasos, esperado vs.
+real) y propone causas probables — con `file`/`line` reales si tiene acceso al repo de
+frontend configurado, o como hipótesis conceptual si no lo tiene. **Nunca inventa un
+path que no vio de verdad.** Es de solo lectura, mismo mecanismo que `calidad_codigo`.
+Se activa por keyword (`causa raíz`, `root cause`, `traza el bug`, `por qué falla`,
+`explorar bug`) o standalone:
+
+```bash
+MAESTRO_PROVIDER=anthropic MAESTRO_MODEL=claude-sonnet-5 MAESTRO_API_KEY=sk-... \
+    python scripts/explorar_bug.py ruta/al/archivo_con_la_descripcion
 ```
