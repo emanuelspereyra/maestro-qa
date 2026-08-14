@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from maestro_qa import writers
 from maestro_qa.agents.casos_manuales import AGENT_REGISTRY, CasosManualesAgent
 from maestro_qa.orchestrator import Intake
 
@@ -84,3 +85,66 @@ def test_llm_response_wrapped_in_markdown_fence_is_still_parsed():
 
     result = CasosManualesAgent().run(intake, provider)
     assert "Cobertura:" in result.content
+
+
+class StubWriter:
+    def __init__(self, raise_for=frozenset()):
+        self._raise_for = raise_for
+
+    def create(self, item):
+        if item.external_ref in self._raise_for:
+            raise writers.WriterError(f"fallo simulado para {item.external_ref}")
+        return writers.WriteResult(external_id="123", url=f"https://example.test/{item.external_ref}")
+
+
+def test_without_writer_configured_no_publish_sections_appear(monkeypatch):
+    monkeypatch.setattr(writers, "get_writer", lambda: None)
+    cases = [_case("happy-path", "FE-TC-001")]
+    provider = FakeProvider(json.dumps(cases))
+    intake = Intake(source="spec", text="crear usuario")
+
+    result = CasosManualesAgent().run(intake, provider)
+
+    assert "Casos publicados" not in result.content
+    assert "## Pendiente" not in result.content
+
+
+def test_publishes_each_case_when_writer_is_configured(monkeypatch):
+    monkeypatch.setattr(writers, "get_writer", lambda: StubWriter())
+    cases = [_case("happy-path", "FE-TC-001"), _case("unhappy-path", "FE-TC-002")]
+    provider = FakeProvider(json.dumps(cases))
+    intake = Intake(source="spec", text="crear usuario")
+
+    result = CasosManualesAgent().run(intake, provider)
+
+    assert "## Casos publicados" in result.content
+    assert "FE-TC-001: https://example.test/FE-TC-001" in result.content
+    assert "FE-TC-002: https://example.test/FE-TC-002" in result.content
+
+
+def test_one_case_failing_to_publish_does_not_block_the_others(monkeypatch):
+    monkeypatch.setattr(writers, "get_writer", lambda: StubWriter(raise_for={"FE-TC-002"}))
+    cases = [_case("happy-path", "FE-TC-001"), _case("unhappy-path", "FE-TC-002")]
+    provider = FakeProvider(json.dumps(cases))
+    intake = Intake(source="spec", text="crear usuario")
+
+    result = CasosManualesAgent().run(intake, provider)
+
+    assert "FE-TC-001: https://example.test/FE-TC-001" in result.content
+    assert "FE-TC-002: no se pudo publicar" in result.content
+    assert result.artifacts["cases"] == cases  # el resto del pipeline sigue viendo los casos igual
+
+
+def test_writer_misconfiguration_is_reported_without_crashing_the_agent(monkeypatch):
+    def raise_misconfigured():
+        raise ValueError("Faltan variables de entorno para MAESTRO_WRITER=azure_devops: MAESTRO_AZURE_DEVOPS_PAT.")
+
+    monkeypatch.setattr(writers, "get_writer", raise_misconfigured)
+    cases = [_case("happy-path", "FE-TC-001")]
+    provider = FakeProvider(json.dumps(cases))
+    intake = Intake(source="spec", text="crear usuario")
+
+    result = CasosManualesAgent().run(intake, provider)
+
+    assert "No se pudo configurar el writer" in result.content
+    assert result.artifacts["cases"] == cases

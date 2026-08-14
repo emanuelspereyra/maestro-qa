@@ -106,6 +106,14 @@ hallazgos para justificar la corrida.
 También podés correrlo solo, sobre un archivo o diff puntual, sin pasar por un ticket
 completo — pedile a quien lo instaló el comando exacto (`scripts/revisar_codigo.py`).
 
+## Casos publicados en Azure DevOps (si está conectado)
+
+Si el proyecto tiene esto configurado, `casos_manuales` publica automáticamente cada
+caso que genera como un work item — vas a ver una sección "Casos publicados" con el link
+de cada uno. Si algún caso puntual no se pudo publicar, aparece en "Pendiente" con el
+motivo, sin afectar a los demás. Sin esta integración conectada, los casos siguen
+apareciendo igual que siempre, solo en el resultado de texto.
+
 ## Preguntas frecuentes
 
 **¿Por qué no generó automatización si mi ticket es claramente de un flujo E2E?**

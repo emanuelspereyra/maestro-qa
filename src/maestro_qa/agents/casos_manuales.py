@@ -3,10 +3,11 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from .. import vendor_bundle
+from .. import vendor_bundle, writers
 from ..json_extraction import extract_json
 from ..orchestrator import AgentResult, Intake
 from ..providers import Provider
+from ..writers import WorkItem
 from .registry import AGENT_REGISTRY
 
 _SYSTEM_PROMPT = """Sos un agente de QA que genera casos de prueba manuales en el \
@@ -104,11 +105,65 @@ class CasosManualesAgent:
             f"Cobertura: {report['delivery_status']} — {report['case_count']} casos, "
             f"capas {report['layer_counts']}"
         )
+        content = f"{summary}\n\n{rendered}"
+
+        published, publish_errors = _publish_cases(cases)
+        if published:
+            content += "\n\n## Casos publicados\n" + "\n".join(f"- {line}" for line in published)
+        if publish_errors:
+            content += "\n\n## Pendiente\n" + "\n".join(f"- {line}" for line in publish_errors)
+
         return AgentResult(
             agent="casos_manuales",
-            content=f"{summary}\n\n{rendered}",
+            content=content,
             artifacts={"cases": cases},
         )
+
+
+def _render_description(case: dict[str, object]) -> str:
+    parts = [f"<p>{case.get('objective', '')}</p>"]
+
+    preconditions = case.get("preconditions")
+    if isinstance(preconditions, list) and preconditions:
+        items = "".join(f"<li>{p}</li>" for p in preconditions)
+        parts.append(f"<p><b>Precondiciones:</b></p><ul>{items}</ul>")
+
+    steps_raw = case.get("steps")
+    steps = [step for step in steps_raw if isinstance(step, dict)] if isinstance(steps_raw, list) else []
+    steps.sort(key=lambda step: step.get("order", 0))
+    if steps:
+        items = "".join(f"<li>{step.get('action', '')} — <i>esperado:</i> {step.get('expected', '')}</li>" for step in steps)
+        parts.append(f"<p><b>Pasos:</b></p><ol>{items}</ol>")
+
+    parts.append(f"<p><b>Resultado esperado:</b> {case.get('expected_result', '')}</p>")
+    return "".join(parts)
+
+
+def _publish_cases(cases: list[dict[str, object]]) -> tuple[list[str], list[str]]:
+    """(líneas de casos publicados, líneas de error) -- nunca levanta, spec 027."""
+    try:
+        writer = writers.get_writer()
+    except ValueError as exc:
+        return [], [f"No se pudo configurar el writer de casos ({exc})"]
+    if writer is None:
+        return [], []
+
+    published = []
+    errors = []
+    for case in cases:
+        case_id = str(case.get("case_id", "?"))
+        try:
+            result = writer.create(
+                WorkItem(
+                    external_ref=case_id,
+                    title=str(case.get("title") or case_id),
+                    description=_render_description(case),
+                )
+            )
+            published.append(f"{case_id}: {result.url}")
+        except writers.WriterError as exc:
+            errors.append(f"{case_id}: no se pudo publicar ({exc})")
+    return published, errors
 
 
 AGENT_REGISTRY["casos_manuales"] = CasosManualesAgent()

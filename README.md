@@ -66,6 +66,15 @@ auto-merge** bajo ninguna circunstancia. Sin `MAESTRO_GITHUB_TOKEN` o sin ese re
 configurado, el código generado se sigue devolviendo igual, solo como texto. Ver
 [`specs/026-writer-repo-automatizacion.md`](specs/026-writer-repo-automatizacion.md).
 
+### Publicar casos en un test-management tool (opcional)
+
+`casos_manuales` puede publicar cada caso generado como un work item real si
+`MAESTRO_WRITER` está configurada (`.env`). Un solo backend implementado por ahora:
+`azure_devops` (work items vía REST API, PAT). El resto de las integraciones de salida
+(Xray, Jira nativo, Trello, ALM Octane, Linear) comparten el mismo protocol `Writer`
+genérico — se agregan de a una. Sin `MAESTRO_WRITER` seteada, comportamiento idéntico al
+actual. Ver [`specs/027-writer-azure-devops.md`](specs/027-writer-azure-devops.md).
+
 ### 1. Configurar credenciales
 
 ```bash
