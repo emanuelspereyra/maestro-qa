@@ -54,6 +54,18 @@ queda en un clone cacheado (`~/.cache/maestro-qa/repos/`) para revisar y subir a
 Sin esa URL configurada, el agente genera exactamente igual que antes, a partir solo del
 texto del ticket. Ver [`specs/023-automatizacion-acceso-repo.md`](specs/023-automatizacion-acceso-repo.md).
 
+### Push + PR del código generado (opcional)
+
+Distinto de lo anterior: si `qa-project.yaml` tiene `repositories.automation.url`
+configurada (un repo separado para los scripts de automatización, no el de la app) y
+`MAESTRO_GITHUB_TOKEN` está seteado, `automatizacion`/`automatizacion_api` llevan el
+Page Object+test (o cliente API+test) que acaban de generar a ese repo de verdad: clonan,
+comitean en una rama nueva, **pushean, y abren un PR** (si el repo es GitHub — otros
+providers quedan con la rama pusheada y el PR para abrir a mano). **Nunca hace
+auto-merge** bajo ninguna circunstancia. Sin `MAESTRO_GITHUB_TOKEN` o sin ese repo
+configurado, el código generado se sigue devolviendo igual, solo como texto. Ver
+[`specs/026-writer-repo-automatizacion.md`](specs/026-writer-repo-automatizacion.md).
+
 ### 1. Configurar credenciales
 
 ```bash

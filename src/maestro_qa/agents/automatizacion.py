@@ -2,7 +2,7 @@ import ast
 import json
 from pathlib import Path
 
-from .. import repo_access
+from .. import pr_writer, repo_access
 from ..json_extraction import extract_json
 from ..orchestrator import AgentResult, Intake
 from ..providers import Provider
@@ -127,6 +127,28 @@ class AutomatizacionAgent:
                 f"- Archivos: {', '.join(sorted(repo.touched_files))}\n"
                 "- No se pusheó ni se abrió PR — revisar y subir a mano."
             )
+
+        feature_slug = _feature_slug(str(payload["page_object_filename"]))
+        publish = pr_writer.publish_generated_code(
+            qa_project_path=Path.cwd() / "qa-project.yaml",
+            feature_slug=feature_slug,
+            files={
+                str(payload["page_object_filename"]): str(payload["page_object_code"]),
+                str(payload["test_filename"]): str(payload["test_code"]),
+            },
+            pr_title=f"test(automatizacion): {feature_slug}",
+            pr_body="Generado por Maestro QA a partir de un ticket. Revisar antes de mergear.",
+        )
+        if publish is not None:
+            lines = ["## Repo de automatización"]
+            if publish.branch:
+                lines.append(f"- Rama: `{publish.branch}` (commit `{(publish.commit_sha or '')[:8]}`)")
+            lines.append(f"- Pusheada: {'sí' if publish.pushed else 'no'}")
+            if publish.pr_url:
+                lines.append(f"- PR: {publish.pr_url}")
+            if publish.error:
+                lines.append(f"- {publish.error}")
+            sections.append("\n".join(lines))
 
         return AgentResult(agent="automatizacion", content="\n\n".join(sections))
 

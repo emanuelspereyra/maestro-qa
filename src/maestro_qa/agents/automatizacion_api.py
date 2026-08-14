@@ -1,6 +1,8 @@
 import ast
 import json
+from pathlib import Path
 
+from .. import pr_writer
 from ..json_extraction import extract_json
 from ..orchestrator import AgentResult, Intake
 from ..providers import Provider
@@ -52,6 +54,10 @@ def _validate(payload: dict[str, object]) -> None:
         raise ValueError(f"Respuesta incompleta del agente de automatización de API, faltan campos: {', '.join(missing)}")
 
 
+def _feature_slug(filename: str) -> str:
+    return Path(filename).stem.replace("_", "-")
+
+
 class AutomatizacionApiAgent:
     def run(self, intake: Intake, provider: Provider) -> AgentResult:
         raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
@@ -68,6 +74,28 @@ class AutomatizacionApiAgent:
         pending = payload.get("pending_items") or []
         if pending:
             sections.append("## Pendiente\n" + "\n".join(f"- {item}" for item in pending))
+
+        feature_slug = _feature_slug(str(payload["api_client_filename"]))
+        publish = pr_writer.publish_generated_code(
+            qa_project_path=Path.cwd() / "qa-project.yaml",
+            feature_slug=feature_slug,
+            files={
+                str(payload["api_client_filename"]): str(payload["api_client_code"]),
+                str(payload["test_filename"]): str(payload["test_code"]),
+            },
+            pr_title=f"test(automatizacion-api): {feature_slug}",
+            pr_body="Generado por Maestro QA a partir de un ticket. Revisar antes de mergear.",
+        )
+        if publish is not None:
+            lines = ["## Repo de automatización"]
+            if publish.branch:
+                lines.append(f"- Rama: `{publish.branch}` (commit `{(publish.commit_sha or '')[:8]}`)")
+            lines.append(f"- Pusheada: {'sí' if publish.pushed else 'no'}")
+            if publish.pr_url:
+                lines.append(f"- PR: {publish.pr_url}")
+            if publish.error:
+                lines.append(f"- {publish.error}")
+            sections.append("\n".join(lines))
 
         return AgentResult(agent="automatizacion_api", content="\n\n".join(sections))
 

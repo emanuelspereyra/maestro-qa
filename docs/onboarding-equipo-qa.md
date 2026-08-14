@@ -73,16 +73,22 @@ lo corrige solo.
 ## Automatización: qué hacer con el código generado
 
 `automatizacion`/`automatizacion_api` te devuelven código Python (Playwright o
-pytest+HTTPX) — copialo al proyecto de automatización del repo correspondiente y corré
-los tests como siempre.
+pytest+HTTPX). Qué hacer con ese código depende de cómo esté configurado el proyecto:
 
-Si el proyecto tiene un repo de frontend conectado (`repositories.frontend` en
-`qa-project.yaml`), `automatizacion` puede además explorar ese repo de verdad y, si le
-falta un selector estable a un componente, agregarle un `data-testid` **directamente en
-el código real** — pero solo en una rama local nueva
-(`automatizacion/<feature>-<fecha>`), con un commit, **nunca la sube ni abre un PR**. Si
-ves esa sección en el resultado, andá al path que te indica, revisá el diff, y subilo vos
-mismo si te parece bien.
+- **Sin ningún repo conectado**: copialo vos mismo al proyecto de automatización
+  correspondiente y corré los tests como siempre.
+- **Con `repositories.frontend` conectado**: además de generar el código, el agente
+  explora ese repo real y, si le falta un selector estable a un componente, le agrega un
+  `data-testid` **directamente en el código real** — pero solo en una rama local nueva
+  (`automatizacion/<feature>-<fecha>`), con un commit, **nunca la sube ni abre un PR**.
+  Si ves la sección "Cambios en el repo de frontend", andá al path que te indica, revisá
+  el diff, y subilo vos mismo si te parece bien.
+- **Con `repositories.automation` conectado** (un repo separado para los scripts de
+  test, no el de la app): el Page Object/test o cliente API/test que se generó se lleva
+  a ese repo de verdad — rama nueva, commit, **y esta vez sí se pushea y se abre un PR
+  real** (si es GitHub). Vas a ver la sección "Repo de automatización" con el link del
+  PR listo para revisar. **Nunca se mergea solo** — el merge lo hacés vos como cualquier
+  otro PR.
 
 ## `calidad_codigo`: revisión anti sobre-ingeniería
 

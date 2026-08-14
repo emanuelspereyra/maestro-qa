@@ -184,10 +184,10 @@ class RepoAccessError(Exception):
     configurado" (eso devuelve None sin error — es el caso común, no una falla)."""
 
 
-def get_frontend_repo(qa_project_path: Path) -> RepoAccess | None:
-    """None si no hay repo de frontend configurado — comportamiento idéntico al de
+def get_repo(qa_project_path: Path, repo_key: str = "frontend") -> RepoAccess | None:
+    """None si no hay repo `repo_key` configurado — comportamiento idéntico al de
     siempre, sin repo. Levanta RepoAccessError si HAY uno configurado pero algo falló
-    (verificación, clone) — automatizacion.py lo reporta en pending_items."""
+    (verificación, clone) — quien llama lo reporta en pending_items."""
     if not qa_project_path.exists():
         return None
 
@@ -196,12 +196,12 @@ def get_frontend_repo(qa_project_path: Path) -> RepoAccess | None:
     except yaml.YAMLError as exc:
         raise RepoAccessError(f"qa-project.yaml inválido: {exc}") from exc
 
-    frontend = (document.get("repositories") or {}).get("frontend") or {}
-    url = frontend.get("url")
+    repo_config = (document.get("repositories") or {}).get(repo_key) or {}
+    url = repo_config.get("url")
     if not url:
         return None
 
-    branch = frontend.get("branch", "")
+    branch = repo_config.get("branch", "")
     try:
         status = onboarding._verify_repo(url, branch)
     except OSError as exc:
@@ -216,3 +216,7 @@ def get_frontend_repo(qa_project_path: Path) -> RepoAccess | None:
         raise RepoAccessError(f"no se pudo clonar/actualizar el repo: {exc}") from exc
 
     return RepoAccess(path=cache_dir)
+
+
+def get_frontend_repo(qa_project_path: Path) -> RepoAccess | None:
+    return get_repo(qa_project_path, "frontend")

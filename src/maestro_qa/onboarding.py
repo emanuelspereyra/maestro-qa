@@ -61,7 +61,7 @@ def ensure_project(project_dir: Path | None = None) -> ProjectStatus:
     repositories = document.get("repositories", {}) or {}
 
     repos_status: dict[str, dict[str, object]] = {}
-    for repo_name in ("frontend", "backend"):
+    for repo_name in ("frontend", "backend", "automation"):
         repo = repositories.get(repo_name) or {}
         url = repo.get("url")
         if url:

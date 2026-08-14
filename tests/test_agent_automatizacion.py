@@ -277,3 +277,43 @@ def test_commit_failure_still_returns_generated_code_as_pending_item(frontend_pr
     assert "GoogleLoginPage" in result.content
     assert "no se pudo comitear" in result.content
     assert "Cambios en el repo de frontend" not in result.content
+
+
+def test_no_automation_repo_configured_means_no_publish_section(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    provider = FakeProvider(json.dumps(VALID_PAYLOAD))
+    intake = Intake(source="spec", text="login con Google")
+
+    result = AutomatizacionAgent().run(intake, provider)
+
+    assert "Repo de automatización" not in result.content
+
+
+def test_publishes_generated_code_to_automation_repo_when_configured(tmp_path, monkeypatch):
+    bare = tmp_path / "automation.git"
+    _git(["init", "-q", "--bare", "--initial-branch=main", str(bare)], tmp_path)
+    seed = tmp_path / "seed"
+    _git(["clone", "-q", str(bare), str(seed)], tmp_path)
+    _git(["config", "user.email", "test@example.com"], seed)
+    _git(["config", "user.name", "Test"], seed)
+    (seed / "README.md").write_text("qa-automation\n")
+    _git(["add", "-A"], seed)
+    _git(["commit", "-q", "-m", "init"], seed)
+    _git(["push", "-q", "origin", "main"], seed)
+
+    qa_project = tmp_path / "qa-project.yaml"
+    qa_project.write_text(
+        yaml.safe_dump({"repositories": {"automation": {"url": str(bare), "branch": "main"}}}), encoding="utf-8"
+    )
+    monkeypatch.setattr(repo_access, "_CACHE_ROOT", tmp_path / "cache")
+    monkeypatch.setenv("MAESTRO_GITHUB_TOKEN", "fake-token")
+    monkeypatch.chdir(tmp_path)
+
+    provider = FakeProvider(json.dumps(VALID_PAYLOAD))
+    intake = Intake(source="spec", text="login con Google")
+
+    result = AutomatizacionAgent().run(intake, provider)
+
+    assert "Repo de automatización" in result.content
+    assert "Pusheada: sí" in result.content
+    assert "abrilo a mano" in result.content  # bare repo local no es github.com

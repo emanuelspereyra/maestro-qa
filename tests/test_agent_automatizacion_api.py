@@ -1,9 +1,16 @@
 import json
+import subprocess
 
 import pytest
+import yaml
 
+from maestro_qa import repo_access
 from maestro_qa.agents.automatizacion_api import AGENT_REGISTRY, AutomatizacionApiAgent
 from maestro_qa.orchestrator import Intake
+
+
+def _git(args, cwd):
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True)
 
 VALID_PAYLOAD = {
     "api_client_filename": "clients/users_client.py",
@@ -101,3 +108,42 @@ def test_non_string_code_raises_clear_error_not_typeerror():
 
     with pytest.raises(ValueError, match="se esperaba código como string"):
         AutomatizacionApiAgent().run(intake, provider)
+
+
+def test_no_automation_repo_configured_means_no_publish_section(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    provider = FakeProvider(json.dumps(VALID_PAYLOAD))
+    intake = Intake(source="jira_ticket", text="endpoint de usuarios")
+
+    result = AutomatizacionApiAgent().run(intake, provider)
+
+    assert "Repo de automatización" not in result.content
+
+
+def test_publishes_generated_code_to_automation_repo_when_configured(tmp_path, monkeypatch):
+    bare = tmp_path / "automation.git"
+    _git(["init", "-q", "--bare", "--initial-branch=main", str(bare)], tmp_path)
+    seed = tmp_path / "seed"
+    _git(["clone", "-q", str(bare), str(seed)], tmp_path)
+    _git(["config", "user.email", "test@example.com"], seed)
+    _git(["config", "user.name", "Test"], seed)
+    (seed / "README.md").write_text("qa-automation\n")
+    _git(["add", "-A"], seed)
+    _git(["commit", "-q", "-m", "init"], seed)
+    _git(["push", "-q", "origin", "main"], seed)
+
+    qa_project = tmp_path / "qa-project.yaml"
+    qa_project.write_text(
+        yaml.safe_dump({"repositories": {"automation": {"url": str(bare), "branch": "main"}}}), encoding="utf-8"
+    )
+    monkeypatch.setattr(repo_access, "_CACHE_ROOT", tmp_path / "cache")
+    monkeypatch.setenv("MAESTRO_GITHUB_TOKEN", "fake-token")
+    monkeypatch.chdir(tmp_path)
+
+    provider = FakeProvider(json.dumps(VALID_PAYLOAD))
+    intake = Intake(source="jira_ticket", text="endpoint de usuarios")
+
+    result = AutomatizacionApiAgent().run(intake, provider)
+
+    assert "Repo de automatización" in result.content
+    assert "Pusheada: sí" in result.content
