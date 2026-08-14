@@ -103,6 +103,28 @@ def test_execute_returns_error_string_instead_of_raising(qa_project_with_repo):
     assert result.startswith("error:")
 
 
+def test_refreshing_cache_does_not_destroy_a_previous_automatizacion_branch(qa_project_with_repo, remote_repo):
+    # bug real (CDA-88, encontrado probando contra un repo real): si una corrida anterior
+    # dejó un branch automatizacion/* checked out con su propio commit, un refresh que
+    # resetea directo sobre ese branch (en vez de detachear primero) mueve su ref a
+    # FETCH_HEAD y el commit se pierde.
+    first = repo_access.get_frontend_repo(qa_project_with_repo)
+    first.write_file("src/login.jsx", "modificado por la corrida 1\n")
+    branch, commit_sha = first.commit_changes("login")
+
+    second = repo_access.get_frontend_repo(qa_project_with_repo)
+
+    assert second.path == first.path
+    preserved_commit = subprocess.run(
+        ["git", "cat-file", "-e", commit_sha], cwd=second.path, capture_output=True, check=False
+    )
+    assert preserved_commit.returncode == 0, "el commit de la corrida anterior no debería perderse"
+    branch_tip = subprocess.run(
+        ["git", "rev-parse", branch], cwd=second.path, capture_output=True, text=True, check=True
+    ).stdout.strip()
+    assert branch_tip == commit_sha, "el branch de la corrida anterior no debería moverse"
+
+
 def test_reusing_cache_does_a_fetch_reset_instead_of_recloning(qa_project_with_repo, remote_repo):
     first = repo_access.get_frontend_repo(qa_project_with_repo)
     (remote_repo / "src" / "new_file.jsx").write_text("export const New = () => null\n")

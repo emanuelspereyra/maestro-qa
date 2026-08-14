@@ -138,6 +138,12 @@ def _clone_or_refresh(url: str, branch: str, cache_dir: Path) -> None:
     if (cache_dir / ".git").exists():
         target_branch = branch or "HEAD"
         _run(["git", "fetch", "origin", target_branch], cwd=cache_dir)
+        # Se hace checkout --detach a FETCH_HEAD ANTES del reset: una corrida anterior
+        # puede haber dejado un branch de automatizacion/* checked out (spec 023) — si se
+        # resetea directo sobre ese branch en vez de detachear primero, el reset --hard
+        # mueve SU ref a FETCH_HEAD y el commit de esa corrida anterior se pierde (bug
+        # real, encontrado probando contra un repo real: CDA-88).
+        _run(["git", "checkout", "--detach", "FETCH_HEAD"], cwd=cache_dir)
         _run(["git", "reset", "--hard", "FETCH_HEAD"], cwd=cache_dir)
         return
 
