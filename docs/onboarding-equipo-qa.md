@@ -29,6 +29,14 @@ Maestro QA nunca inventa un dato que falta, lo marca como pendiente.
 Si es tu primera vez en un proyecto nuevo, pedile primero que corra `ensure_project` —
 te dice qué credenciales/repos están configurados antes de arrancar con tickets.
 
+**Si el proyecto tiene Azure DevOps conectado**, no hace falta ni copiar el texto del
+ticket — le pasás el ID del work item:
+
+> Corré Maestro QA sobre el work item 4521 de Azure DevOps.
+
+Trae el título y la descripción reales del work item y corre exactamente igual que si
+lo hubieras pegado a mano.
+
 ## Qué agente hace qué
 
 Dos corren siempre, sin que el ticket los pida:

@@ -86,6 +86,48 @@ def test_run_qa_runs_real_registered_agents_end_to_end(tmp_path, monkeypatch):
     assert "release_readiness" in result
 
 
+def test_run_qa_from_work_item_without_reader_configured_returns_clear_message(monkeypatch):
+    monkeypatch.setattr(mcp_server.config, "load_env_file", lambda: None)
+    monkeypatch.delenv("MAESTRO_READER", raising=False)
+
+    result = mcp_server._run_qa_from_work_item_impl("123")
+
+    assert "No hay reader configurado" in result
+
+
+def test_run_qa_from_work_item_fetches_and_runs_the_full_pipeline(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mcp_server, "get_provider", lambda: FakeProvider())
+    monkeypatch.setattr(mcp_server.config, "load_env_file", lambda: None)
+
+    class FakeReader:
+        def fetch(self, external_id):
+            return mcp_server.readers.FetchedTicket(
+                external_id=external_id, title="x", text="Agregar un campo de teléfono al perfil"
+            )
+
+    monkeypatch.setattr(mcp_server.readers, "get_reader", lambda: FakeReader())
+
+    result = mcp_server._run_qa_from_work_item_impl("123")
+
+    assert "casos_manuales" in result
+    assert "release_readiness" in result
+
+
+def test_run_qa_from_work_item_reports_fetch_failure_without_crashing(monkeypatch):
+    monkeypatch.setattr(mcp_server.config, "load_env_file", lambda: None)
+
+    class FailingReader:
+        def fetch(self, external_id):
+            raise mcp_server.readers.ReaderError("404")
+
+    monkeypatch.setattr(mcp_server.readers, "get_reader", lambda: FailingReader())
+
+    result = mcp_server._run_qa_from_work_item_impl("999")
+
+    assert "No se pudo leer el work item 999" in result
+
+
 def test_all_routable_agents_are_registered_by_mcp_server():
     # bug real (2026-08-14): calidad_codigo (spec 025) se agregó al routing del
     # orquestador pero se olvidó en la lista de imports de mcp_server.py -- en el
@@ -122,7 +164,7 @@ def test_server_exposes_tools_over_real_mcp_protocol(tmp_path):
             await session.initialize()
             tools = await session.list_tools()
             names = {tool.name for tool in tools.tools}
-            assert names == {"run_qa", "ensure_project"}
+            assert names == {"run_qa", "run_qa_from_work_item", "ensure_project"}
 
             result = await session.call_tool("ensure_project", {})
             assert not result.is_error

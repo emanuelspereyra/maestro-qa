@@ -3,7 +3,7 @@ from typing import Literal
 
 from mcp.server import MCPServer
 
-from . import config, onboarding
+from . import config, onboarding, readers
 
 # Registra los 10 agentes en AGENT_REGISTRY (efecto de solo importar cada módulo).
 # orchestrator.py no los importa él mismo a propósito (evita import circular, ver
@@ -36,6 +36,23 @@ def _run_qa_impl(source: str, text: str) -> str:
     return result.to_markdown()
 
 
+def _run_qa_from_work_item_impl(work_item_id: str) -> str:
+    config.load_env_file()
+    try:
+        reader = readers.get_reader()
+    except ValueError as exc:
+        return f"No se pudo configurar el reader ({exc})"
+    if reader is None:
+        return "No hay reader configurado (falta MAESTRO_READER=azure_devops y sus credenciales)."
+
+    try:
+        ticket = reader.fetch(work_item_id)
+    except readers.ReaderError as exc:
+        return f"No se pudo leer el work item {work_item_id} de Azure DevOps: {exc}"
+
+    return _run_qa_impl("jira_ticket", ticket.text)
+
+
 def _ensure_project_impl() -> str:
     config.load_env_file()
     status = onboarding.ensure_project()
@@ -56,6 +73,15 @@ def run_qa(source: Literal["jira_ticket", "spec"], text: str) -> str:
     agregado, incluyendo el veredicto final de release-readiness.
     """
     return _run_qa_impl(source, text)
+
+
+@mcp.tool()
+def run_qa_from_work_item(work_item_id: str) -> str:
+    """Trae un work item real de Azure DevOps por ID y corre Maestro QA sobre su
+    contenido — sin copiar/pegar texto a mano. Necesita MAESTRO_READER=azure_devops
+    configurado (mismas credenciales que el writer de spec 027).
+    """
+    return _run_qa_from_work_item_impl(work_item_id)
 
 
 @mcp.tool()

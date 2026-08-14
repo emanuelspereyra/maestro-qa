@@ -35,11 +35,14 @@ sumarlo también ahí.
 
 ## Servidor MCP
 
-Expone Maestro QA como servidor MCP (ver [`specs/020-servidor-mcp.md`](specs/020-servidor-mcp.md)) — dos tools:
+Expone Maestro QA como servidor MCP (ver [`specs/020-servidor-mcp.md`](specs/020-servidor-mcp.md)) — tres tools:
 
 - `run_qa(source, text)` — corre el orquestador sobre un ticket (`source="jira_ticket"`) o
   una spec/PRD (`source="spec"`), rutea a los agentes que apliquen y devuelve el reporte
   agregado, incluyendo el veredicto final de `release_readiness`.
+- `run_qa_from_work_item(work_item_id)` — igual que `run_qa`, pero trae el texto de un
+  work item real de Azure DevOps por ID en vez de pegarlo a mano (necesita
+  `MAESTRO_READER=azure_devops`, ver [`specs/028-reader-azure-devops.md`](specs/028-reader-azure-devops.md)).
 - `ensure_project()` — crea/lee `qa-project.yaml` y reporta qué credenciales propias de
   Maestro QA están configuradas (sin exponer valores).
 
