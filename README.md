@@ -8,6 +8,10 @@ Copilot y Codex CLI sin integración adicional (protocolo genérico, confirmado 
 
 Ver [`specs/000-arquitectura.md`](specs/000-arquitectura.md) para el diseño completo.
 
+**¿Sos del equipo de QA y ya tenés esto instalado?** Este README es para instalar/operar
+el servidor — la guía de uso día a día con tickets reales está en
+[`docs/onboarding-equipo-qa.md`](docs/onboarding-equipo-qa.md).
+
 ## Metodología: Spec-Driven Development
 
 Ninguna feature se implementa sin una spec primero. Antes de escribir código:
