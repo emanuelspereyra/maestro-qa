@@ -1,5 +1,11 @@
 # Maestro QA
 
+[![CI](https://github.com/emanuelspereyra/maestro-qa/actions/workflows/ci.yml/badge.svg)](https://github.com/emanuelspereyra/maestro-qa/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
+[![Ruff](https://img.shields.io/badge/lint-ruff-000000)](https://docs.astral.sh/ruff/)
+[![mypy: strict](https://img.shields.io/badge/mypy-strict-2A6DB2)](https://mypy-lang.org/)
+[![MCP](https://img.shields.io/badge/protocol-MCP-6B4FBB)](https://modelcontextprotocol.io/)
+
 Orquestador multi-agente de testing. Recibe una tarea (ticket de Jira o spec/PRD) y
 reparte el trabajo entre agentes especializados (casos manuales, automatización, datos de
 prueba, priorización de bugs, regresión, performance, seguridad, trazabilidad, calidad de
