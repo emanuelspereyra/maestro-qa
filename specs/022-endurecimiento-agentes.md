@@ -70,3 +70,8 @@ aparecen más gaps de este tipo, no antes.
   además de los 3 encontrados acá.
 - **Reintento automático del LLM ante JSON inválido** — sigue siendo backlog desde spec 004
   (el orquestador captura el error, no relanza).
+- **Sensibilidad a mayúsculas en validaciones de enum** (`performance.test_type`,
+  severidades de `seguridad`/`priorizacion_bugs`, `regresion.regression_priority`, etc.):
+  hoy comparan exacto contra el valor documentado en el system prompt (ej. `"load"`, no
+  `"Load"`). No reproducido con un LLM real todavía — se arregla si aparece un caso
+  concreto, no de forma preventiva en los 6+ agentes que tienen enums.

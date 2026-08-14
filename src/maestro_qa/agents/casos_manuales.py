@@ -1,10 +1,10 @@
 import json
-import re
 import subprocess
 import tempfile
 from pathlib import Path
 
 from .. import vendor_bundle
+from ..json_extraction import extract_json
 from ..orchestrator import AgentResult, Intake
 from ..providers import Provider
 from .registry import AGENT_REGISTRY
@@ -64,17 +64,10 @@ feature descrita. Ejemplo de formato (una sola capa, adaptá al feature real):
 """
 
 
-def _extract_json_array(text: str) -> str:
-    match = re.search(r"\[.*\]", text, re.DOTALL)
-    if not match:
-        raise ValueError("La respuesta del LLM no contiene un array JSON de casos")
-    return match.group(0)
-
-
 class CasosManualesAgent:
     def run(self, intake: Intake, provider: Provider) -> AgentResult:
         raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
-        cases = json.loads(_extract_json_array(raw))
+        cases = json.loads(extract_json(raw, list))
         scripts_dir = vendor_bundle.scripts_dir()
 
         layers_present = sorted({case.get("layer") for case in cases if case.get("layer")})

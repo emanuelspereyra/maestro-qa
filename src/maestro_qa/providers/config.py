@@ -15,7 +15,16 @@ _OPENAI_COMPAT_BASE_URLS = {
 }
 
 
+_REQUIRED_ENV_VARS = ("MAESTRO_PROVIDER", "MAESTRO_MODEL", "MAESTRO_API_KEY")
+
+
 def get_provider() -> Provider:
+    missing = [var for var in _REQUIRED_ENV_VARS if not os.environ.get(var)]
+    if missing:
+        raise ValueError(
+            f"Faltan variables de entorno: {', '.join(missing)}. "
+            "Copiá .env.example a .env y completalas (ver README)."
+        )
     name = os.environ["MAESTRO_PROVIDER"]
     model = os.environ["MAESTRO_MODEL"]
     api_key = os.environ["MAESTRO_API_KEY"]

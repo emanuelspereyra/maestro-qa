@@ -1,10 +1,10 @@
 import json
-import re
 import subprocess
 import tempfile
 from pathlib import Path
 
 from .. import vendor_bundle
+from ..json_extraction import extract_json
 from ..orchestrator import AgentResult, Intake
 from ..providers import Provider
 from .registry import AGENT_REGISTRY
@@ -59,17 +59,10 @@ que parezca un secreto real.
 """
 
 
-def _extract_json_object(text: str) -> str:
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise ValueError("La respuesta del LLM no contiene un objeto JSON")
-    return match.group(0)
-
-
 class DatosPruebaAgent:
     def run(self, intake: Intake, provider: Provider) -> AgentResult:
         raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
-        spec = json.loads(_extract_json_object(raw))
+        spec = json.loads(extract_json(raw, dict))
         dataset_id = spec.get("dataset_id", "DS-UNKNOWN")
 
         scripts_dir = vendor_bundle.scripts_dir()

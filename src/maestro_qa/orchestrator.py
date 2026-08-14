@@ -28,9 +28,9 @@ _KEYWORD_AGENTS = {
     "automatizacion_api": ["endpoint", "api rest", "backend"],
     "datos_prueba": ["datos de prueba", "test data", "dataset", "carga masiva"],
     "priorizacion_bugs": ["bug", "defecto", "incidencia", "hotfix"],
-    "documentacion": ["documentar", "documentación", "manual de usuario"],
-    "regresion": ["regresión", "regression", "suite completa"],
-    "performance": ["performance", "carga", "estrés", "latencia", "throughput"],
+    "documentacion": ["documentar", "documentación", "documentacion", "manual de usuario"],
+    "regresion": ["regresión", "regresion", "regression", "suite completa"],
+    "performance": ["performance", "carga", "estrés", "estres", "latencia", "throughput"],
     "seguridad": ["seguridad", "vulnerabilidad", "owasp", "auth", "permisos"],
 }
 

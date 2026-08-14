@@ -76,3 +76,16 @@ def test_response_wrapped_in_markdown_fence_is_still_parsed():
 
     result = AutomatizacionApiAgent().run(intake, provider)
     assert "UsersClient" in result.content
+
+
+@pytest.mark.parametrize(
+    "missing_field", ["api_client_filename", "api_client_code", "test_filename", "test_code"]
+)
+def test_missing_required_field_raises_clear_error_not_keyerror(missing_field):
+    payload = dict(VALID_PAYLOAD)
+    del payload[missing_field]
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="jira_ticket", text="endpoint de usuarios")
+
+    with pytest.raises(ValueError, match=missing_field):
+        AutomatizacionApiAgent().run(intake, provider)

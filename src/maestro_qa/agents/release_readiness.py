@@ -1,6 +1,7 @@
 import json
 import re
 
+from ..json_extraction import extract_json
 from ..orchestrator import AgentResult, Intake
 from ..providers import Provider
 from .registry import AGENT_REGISTRY
@@ -20,13 +21,6 @@ Devolvé EXCLUSIVAMENTE un objeto JSON (sin texto adicional, sin markdown) con e
   "non_blocking_notes": ["puede estar vacía"]
 }
 """
-
-
-def _extract_json_object(text: str) -> str:
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise ValueError("La respuesta del LLM no contiene un objeto JSON")
-    return match.group(0)
 
 
 def _validate(payload: dict[str, object]) -> None:
@@ -49,7 +43,7 @@ def _error_agents_from_header(text: str) -> list[str]:
 class ReleaseReadinessAgent:
     def run(self, intake: Intake, provider: Provider) -> AgentResult:
         raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
-        payload = json.loads(_extract_json_object(raw))
+        payload = json.loads(extract_json(raw, dict))
         _validate(payload)
 
         # ponytail: el encabezado "Agentes con error: ..." lo arma el orquestador, no el

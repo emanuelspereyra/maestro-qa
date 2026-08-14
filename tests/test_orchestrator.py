@@ -45,6 +45,22 @@ def test_keyword_routes_backend_api_automation():
     assert "automatizacion_api" in selected
 
 
+# bug real (spec 022): tildes omitidas en tickets escritos rápido no matcheaban ningún
+# keyword para documentacion/regresion/performance.
+@pytest.mark.parametrize(
+    ("text", "expected_agent"),
+    [
+        ("necesito documentacion de esta feature", "documentacion"),
+        ("hay que correr la regresion del login", "regresion"),
+        ("probar el estres del checkout con muchos usuarios", "performance"),
+    ],
+)
+def test_keyword_routes_without_accent_marks(text, expected_agent):
+    intake = Intake(source="jira_ticket", text=text)
+    selected = classify_agents(intake)
+    assert expected_agent in selected
+
+
 def test_run_skips_agents_not_registered(clean_registry):
     intake = Intake(source="spec", text="cualquier cosa")
     result = run(intake, provider=None)

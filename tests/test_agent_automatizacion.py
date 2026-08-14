@@ -76,3 +76,27 @@ def test_response_wrapped_in_markdown_fence_is_still_parsed():
 
     result = AutomatizacionAgent().run(intake, provider)
     assert "GoogleLoginPage" in result.content
+
+
+@pytest.mark.parametrize(
+    "missing_field", ["page_object_filename", "page_object_code", "test_filename", "test_code"]
+)
+def test_missing_required_field_raises_clear_error_not_keyerror(missing_field):
+    payload = dict(VALID_PAYLOAD)
+    del payload[missing_field]
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="login con Google")
+
+    with pytest.raises(ValueError, match=missing_field):
+        AutomatizacionAgent().run(intake, provider)
+
+
+def test_response_with_trailing_prose_and_stray_brace_is_still_parsed():
+    # bug real de extracción de JSON (spec 022): un regex greedy se confundía con
+    # cualquier otra llave en el texto circundante.
+    raw = f"{json.dumps(VALID_PAYLOAD)}\n\nNota: el campo `{{base_url}}` ya está resuelto."
+    provider = FakeProvider(raw)
+    intake = Intake(source="spec", text="login con Google")
+
+    result = AutomatizacionAgent().run(intake, provider)
+    assert "GoogleLoginPage" in result.content

@@ -72,3 +72,25 @@ def test_response_wrapped_in_markdown_fence_is_still_parsed():
 
     result = PerformanceAgent().run(intake, provider)
     assert "CheckoutUser" in result.content
+
+
+@pytest.mark.parametrize(
+    "missing_field", ["test_type", "locustfile_filename", "locustfile_code", "run_command"]
+)
+def test_missing_required_field_raises_clear_error_not_keyerror(missing_field):
+    payload = dict(VALID_PAYLOAD)
+    del payload[missing_field]
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="probar carga del checkout")
+
+    with pytest.raises(ValueError, match=missing_field):
+        PerformanceAgent().run(intake, provider)
+
+
+def test_invalid_test_type_raises():
+    payload = {**VALID_PAYLOAD, "test_type": "smoke"}  # "smoke" no es un tipo válido acá
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="probar carga del checkout")
+
+    with pytest.raises(ValueError, match="test_type inválido"):
+        PerformanceAgent().run(intake, provider)
