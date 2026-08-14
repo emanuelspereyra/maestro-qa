@@ -69,10 +69,10 @@ def test_raises_repo_access_error_for_unreachable_repo(tmp_path):
 
 
 def test_write_file_then_commit_creates_new_branch(qa_project_with_repo):
+    # sin git config user.email/name en el clone (bug real, CDA-88: CI no tiene
+    # identidad git ambiente y esto rompía con "Author identity unknown") —
+    # commit_changes tiene que funcionar solo, sin depender de config externa.
     repo = repo_access.get_frontend_repo(qa_project_with_repo)
-    _git(["config", "user.email", "test@example.com"], repo.path)
-    _git(["config", "user.name", "Test"], repo.path)
-
     repo.write_file("src/login.jsx", "export const Login = () => <button data-testid='id-testautomation-login'>Login</button>\n")
     commit = repo.commit_changes("login")
 

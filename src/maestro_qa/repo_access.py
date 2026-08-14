@@ -1,4 +1,5 @@
 import hashlib
+import os
 import subprocess
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -109,16 +110,25 @@ class RepoAccess:
         branch = f"automatizacion/{feature_slug}-{timestamp}"
         _run(["git", "checkout", "-b", branch], cwd=self.path)
         _run(["git", "add", "-A"], cwd=self.path)
+        # No depende de que la máquina tenga identidad git configurada (ambiente fresco,
+        # CI, container) — el commit automatizado siempre firma como Maestro QA.
         _run(
             ["git", "commit", "-m", f"automatizacion: agrega selectores de test para {feature_slug}"],
             cwd=self.path,
+            env={
+                "GIT_AUTHOR_NAME": "Maestro QA",
+                "GIT_AUTHOR_EMAIL": "maestro-qa@localhost",
+                "GIT_COMMITTER_NAME": "Maestro QA",
+                "GIT_COMMITTER_EMAIL": "maestro-qa@localhost",
+            },
         )
         commit_sha = _run(["git", "rev-parse", "HEAD"], cwd=self.path).stdout.strip()
         return branch, commit_sha
 
 
-def _run(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(args, cwd=cwd, capture_output=True, text=True, check=False)
+def _run(args: list[str], cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    full_env = {**os.environ, **env} if env else None
+    result = subprocess.run(args, cwd=cwd, capture_output=True, text=True, check=False, env=full_env)
     if result.returncode != 0:
         raise RuntimeError(f"{' '.join(args)} falló: {result.stderr.strip()}")
     return result
