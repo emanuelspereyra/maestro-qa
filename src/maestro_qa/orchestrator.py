@@ -30,7 +30,7 @@ _KEYWORD_AGENTS = {
     "priorizacion_bugs": ["bug", "defecto", "incidencia", "hotfix"],
     "documentacion": ["documentar", "documentación", "documentacion", "manual de usuario"],
     "regresion": ["regresión", "regresion", "regression", "suite completa"],
-    "performance": ["performance", "carga", "estrés", "estres", "latencia", "throughput"],
+    "performance": ["performance", "prueba de carga", "estrés", "estres", "latencia", "throughput"],
     "seguridad": ["seguridad", "vulnerabilidad", "owasp", "auth", "permisos"],
 }
 

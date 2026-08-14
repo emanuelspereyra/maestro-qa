@@ -61,6 +61,24 @@ def test_keyword_routes_without_accent_marks(text, expected_agent):
     assert expected_agent in selected
 
 
+def test_generic_carga_keyword_does_not_false_positive_performance():
+    # bug real (auditoría 2026-08-14): "carga" sola matcheaba "pantalla de carga",
+    # "carga de archivo", etc. -- nada de eso es load/stress testing, y gastaba una
+    # llamada LLM completa en el agente equivocado.
+    intake = Intake(
+        source="jira_ticket",
+        text="verificar que la pantalla de carga del checkout no muestre datos de tarjetas de prueba",
+    )
+    selected = classify_agents(intake)
+    assert "performance" not in selected
+
+
+def test_prueba_de_carga_keyword_still_routes_to_performance():
+    intake = Intake(source="jira_ticket", text="necesitamos una prueba de carga del checkout con 200 usuarios")
+    selected = classify_agents(intake)
+    assert "performance" in selected
+
+
 def test_run_skips_agents_not_registered(clean_registry):
     intake = Intake(source="spec", text="cualquier cosa")
     result = run(intake, provider=None)

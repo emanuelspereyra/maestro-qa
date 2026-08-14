@@ -94,6 +94,16 @@ def test_missing_required_field_raises_clear_error_not_keyerror(missing_field):
         AutomatizacionAgent().run(intake, provider)
 
 
+def test_non_string_code_raises_clear_error_not_typeerror():
+    # bug real (auditoría 2026-08-14): mismo fix que automatizacion_api.py.
+    payload = {**VALID_PAYLOAD, "test_code": ["import pytest", "def test_x(): pass"]}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="login con Google")
+
+    with pytest.raises(ValueError, match="se esperaba código como string"):
+        AutomatizacionAgent().run(intake, provider)
+
+
 def test_response_with_trailing_prose_and_stray_brace_is_still_parsed():
     # bug real de extracción de JSON (spec 022): un regex greedy se confundía con
     # cualquier otra llave en el texto circundante.
@@ -165,8 +175,12 @@ def test_uses_repo_tools_when_frontend_repo_is_configured(frontend_project):
     assert "No se pusheó" in result.content
 
 
-def test_falls_back_to_blind_generation_without_frontend_repo_configured():
-    # sin qa-project.yaml en el cwd de test — mismo comportamiento de siempre (spec 005)
+def test_falls_back_to_blind_generation_without_frontend_repo_configured(tmp_path, monkeypatch):
+    # sin qa-project.yaml en el cwd — mismo comportamiento de siempre (spec 005). cwd
+    # controlado explícitamente (bug de test real, auditoría 2026-08-14): sin esto, el
+    # test dependía en silencio de que el cwd real de pytest no tuviera un
+    # qa-project.yaml, en vez de garantizarlo.
+    monkeypatch.chdir(tmp_path)
     provider = FakeProvider(json.dumps(VALID_PAYLOAD))
     intake = Intake(source="spec", text="login con Google")
 
@@ -190,3 +204,76 @@ def test_repo_access_failure_is_surfaced_as_pending_item_not_a_crash(tmp_path, m
     result = AutomatizacionAgent().run(intake, provider)
 
     assert "No se pudo usar el repo de frontend" in result.content
+
+
+class ExploringWithoutWritingFakeProvider:
+    """Simula el caso más común en producción: el LLM explora (list_files/read_file) pero
+    no encuentra nada que agregar, así que nunca llama write_file."""
+
+    def __init__(self, response: str):
+        self._response = response
+
+    def complete(self, system, messages, tools=None, tool_executor=None, **kwargs):
+        assert tools is not None
+        assert tool_executor is not None
+        tool_executor("list_files", {"path": "."})
+        return self._response
+
+
+def test_exploring_without_writing_does_not_show_repo_changes_section(frontend_project):
+    provider = ExploringWithoutWritingFakeProvider(json.dumps(VALID_PAYLOAD))
+    intake = Intake(source="spec", text="login con Google")
+
+    result = AutomatizacionAgent().run(intake, provider)
+
+    assert "Cambios en el repo de frontend" not in result.content
+    assert "GoogleLoginPage" in result.content
+
+
+class RaisingProvider:
+    def complete(self, system, messages, tools=None, tool_executor=None, **kwargs):
+        raise RuntimeError("el provider explotó a mitad del tool-calling")
+
+
+def test_tool_calling_failure_falls_back_to_blind_generation(frontend_project):
+    # bug real (auditoría 2026-08-14): antes de este fix, una excepción acá rompía toda
+    # la corrida del agente en vez de caer al flujo sin tools, contradiciendo el diseño
+    # de spec 023 ("cualquier falla ... cae al flujo sin tools").
+    intake = Intake(source="spec", text="login con Google")
+
+    class SequencedProvider:
+        def __init__(self):
+            self._calls = 0
+
+        def complete(self, system, messages, tools=None, tool_executor=None, **kwargs):
+            self._calls += 1
+            if tools is not None:
+                raise RuntimeError("el provider explotó a mitad del tool-calling")
+            return json.dumps(VALID_PAYLOAD)
+
+    result = AutomatizacionAgent().run(intake, SequencedProvider())
+
+    assert "GoogleLoginPage" in result.content
+    assert "Cambios en el repo de frontend" not in result.content
+    assert "tool-calling falló" in result.content
+
+
+def test_commit_failure_still_returns_generated_code_as_pending_item(frontend_project, monkeypatch):
+    # bug real (auditoría 2026-08-14): si commit_changes fallaba (ej. colisión de rama),
+    # la excepción no estaba capturada y se perdía todo el resultado ya generado.
+    monkeypatch.setattr(
+        repo_access.RepoAccess,
+        "commit_changes",
+        lambda self, feature_slug: (_ for _ in ()).throw(RuntimeError("git commit falló feo")),
+    )
+    provider = ToolUsingFakeProvider(
+        json.dumps(VALID_PAYLOAD),
+        tool_call=("write_file", {"path": "src/login.jsx", "content": "modificado\n"}),
+    )
+    intake = Intake(source="spec", text="login con Google")
+
+    result = AutomatizacionAgent().run(intake, provider)
+
+    assert "GoogleLoginPage" in result.content
+    assert "no se pudo comitear" in result.content
+    assert "Cambios en el repo de frontend" not in result.content

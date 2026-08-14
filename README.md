@@ -39,6 +39,17 @@ Expone Maestro QA como servidor MCP (ver [`specs/020-servidor-mcp.md`](specs/020
 - `ensure_project()` — crea/lee `qa-project.yaml` y reporta qué credenciales propias de
   Maestro QA están configuradas (sin exponer valores).
 
+### Automatización con acceso a repo de frontend (opcional)
+
+Si `qa-project.yaml` tiene `repositories.frontend.url` configurada (y verificada de
+solo lectura), el agente `automatizacion` deja que el LLM explore el repo real vía
+tool-calling (`list_files`/`read_file`/`write_file`) antes de escribir el test — y si
+agrega un `data-testid` faltante a un componente, comitea el cambio en una rama local
+nueva (`automatizacion/<feature>-<timestamp>`). **Nunca pushea ni abre PR** — la rama
+queda en un clone cacheado (`~/.cache/maestro-qa/repos/`) para revisar y subir a mano.
+Sin esa URL configurada, el agente genera exactamente igual que antes, a partir solo del
+texto del ticket. Ver [`specs/023-automatizacion-acceso-repo.md`](specs/023-automatizacion-acceso-repo.md).
+
 ### 1. Configurar credenciales
 
 ```bash

@@ -21,8 +21,11 @@ Cubre CDA-23/24/25 (epic "Sub-agente: Automatización (Page Object Model)", CDA-
   automatización de API, es un agente nuevo, no una extensión de este.
 - Copiar `assets/playwright-python/` a un repo de cliente nuevo — es un paso de bootstrap
   del proyecto, no algo que este agente haga por ticket.
-- Escribir el código generado en un repo real (PR) — eso es CDA-60 ("Writer hacia repo de
-  código"), todavía en Todo.
+- ~~Escribir el código generado en un repo real~~ — spec 023 le agregó esto parcialmente:
+  si hay un repo de frontend configurado y verificado, el agente puede agregar un
+  `data-testid` faltante y comitearlo en una rama local nueva. **Abrir un PR real
+  (push)** sigue siendo CDA-60, todavía en Todo — la escritura de spec 023 es
+  deliberadamente solo local, nunca toca el remoto.
 - Ejecutar el test generado contra un browser real — sin sandbox de ejecución, este agente
   no corre Playwright, solo lo genera (ver Backlog).
 

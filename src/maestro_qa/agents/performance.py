@@ -56,6 +56,11 @@ class PerformanceAgent:
             payload["test_type"] = payload["test_type"].strip().lower()
         _validate(payload)
 
+        if not isinstance(payload["locustfile_code"], str):
+            raise ValueError(  # noqa: TRY004 - convención del proyecto: ValueError para toda validación de input
+                f"{payload['locustfile_filename']}: se esperaba código como string, "
+                f"se recibió {type(payload['locustfile_code']).__name__}"
+            )
         try:
             ast.parse(payload["locustfile_code"])
         except SyntaxError as exc:

@@ -103,6 +103,24 @@ def test_execute_returns_error_string_instead_of_raising(qa_project_with_repo):
     assert result.startswith("error:")
 
 
+@pytest.mark.parametrize("path", [".git/hooks/pre-commit", ".git/config", ".git"])
+def test_write_file_rejects_paths_inside_dot_git(qa_project_with_repo, path):
+    # bug real (auditoría 2026-08-14): el LLM no controla git, escribir dentro de .git/
+    # puede alterar hooks/config del repo cacheado y sobrevive a un refresh del cache.
+    repo = repo_access.get_frontend_repo(qa_project_with_repo)
+    with pytest.raises(ValueError, match=r"\.git"):
+        repo.write_file(path, "malicious content")
+
+
+def test_execute_returns_error_string_when_args_is_not_a_dict(qa_project_with_repo):
+    # bug real (auditoría 2026-08-14): un LLM real puede mandar argumentos de tool-call
+    # que no decodifican a un dict (ej. una lista) — args["path"] tiraba TypeError sin
+    # capturar y crasheaba todo el loop de tool-calling del provider.
+    repo = repo_access.get_frontend_repo(qa_project_with_repo)
+    result = repo.execute("read_file", ["not-a-dict"])
+    assert result.startswith("error:")
+
+
 def test_refreshing_cache_does_not_destroy_a_previous_automatizacion_branch(qa_project_with_repo, remote_repo):
     # bug real (CDA-88, encontrado probando contra un repo real): si una corrida anterior
     # dejó un branch automatizacion/* checked out con su propio commit, un refresh que

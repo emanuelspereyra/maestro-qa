@@ -71,6 +71,10 @@ stubs de tipos de esos SDKs, no del diseño de esta capa.
   triage de bugs) — útil como optimización de costo/calidad más adelante, pero v1 asume un
   solo proveedor para todo el motor. Cuando se pida, se resuelve extendiendo `config.py` con
   un mapa `agente -> proveedor` sin tocar la interfaz `Provider`.
-- **Streaming y tool-calling** — ningún agente de v1 los necesita.
+- **Streaming** — ningún agente lo necesita todavía.
+- ~~Tool-calling~~ — implementado en spec 023 (`Provider.complete(tools=, tool_executor=)`,
+  ambos providers) para que `automatizacion` explore un repo real. Se agregó como
+  capacidad genérica de esta capa, no como algo específico de ese agente — cualquier
+  agente futuro puede pedirlo.
 - **Embeddings / búsqueda semántica** — no hay agente que lo requiera todavía (podría
   aparecer si se agrega un agente de trazabilidad más sofisticado).

@@ -79,3 +79,18 @@ def test_response_wrapped_in_markdown_fence_is_still_parsed():
 
     result = PriorizacionBugsAgent().run(intake, provider)
     assert "El login con Google" in result.content
+
+
+def test_business_priority_is_always_forced_regardless_of_what_the_llm_returns():
+    # bug real (auditoría 2026-08-14): _validate solo chequeaba que business_priority no
+    # estuviera vacío, no que fuera EL literal fijo -- un LLM que ignorara la instrucción
+    # y devolviera una prioridad real (ej. "Alta") se imprimía como si fuera legítima,
+    # rompiendo en silencio la garantía de que este agente no decide prioridad de negocio.
+    payload = {**VALID_PAYLOAD, "business_priority": "Alta"}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="bug de login")
+
+    result = PriorizacionBugsAgent().run(intake, provider)
+
+    assert "Alta" not in result.content
+    assert "pendiente de decisión de negocio" in result.content

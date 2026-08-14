@@ -47,7 +47,9 @@ en el componente real, en vez de dejarlo como pendiente."""
 _REQUIRED_FIELDS = ["page_object_filename", "page_object_code", "test_filename", "test_code"]
 
 
-def _check_syntax(filename: str, code: str) -> None:
+def _check_syntax(filename: str, code: object) -> None:
+    if not isinstance(code, str):
+        raise ValueError(f"{filename}: se esperaba código como string, se recibió {type(code).__name__}")  # noqa: TRY004 - convención del proyecto: ValueError para toda validación de input
     try:
         ast.parse(code)
     except SyntaxError as exc:
@@ -76,12 +78,17 @@ class AutomatizacionAgent:
         repo, repo_error = _get_repo_access()
 
         if repo is not None:
-            raw = provider.complete(
-                system=_SYSTEM_PROMPT + _REPO_ACCESS_SUFFIX,
-                messages=[{"role": "user", "content": intake.text}],
-                tools=repo_access.TOOLS,
-                tool_executor=repo.execute,
-            )
+            try:
+                raw = provider.complete(
+                    system=_SYSTEM_PROMPT + _REPO_ACCESS_SUFFIX,
+                    messages=[{"role": "user", "content": intake.text}],
+                    tools=repo_access.TOOLS,
+                    tool_executor=repo.execute,
+                )
+            except Exception as exc:  # noqa: BLE001 - spec 023: cualquier falla acá cae a generar a ciegas
+                repo_error = f"tool-calling falló: {exc}"
+                repo = None
+                raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
         else:
             raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
 
@@ -91,6 +98,14 @@ class AutomatizacionAgent:
         _check_syntax(payload["page_object_filename"], payload["page_object_code"])
         _check_syntax(payload["test_filename"], payload["test_code"])
 
+        commit: tuple[str, str] | None = None
+        commit_error: str | None = None
+        if repo is not None:
+            try:
+                commit = repo.commit_changes(_feature_slug(str(payload["page_object_filename"])))
+            except RuntimeError as exc:
+                commit_error = str(exc)
+
         sections = [
             f"## {payload['page_object_filename']}\n```python\n{payload['page_object_code']}\n```",
             f"## {payload['test_filename']}\n```python\n{payload['test_code']}\n```",
@@ -98,20 +113,20 @@ class AutomatizacionAgent:
         pending = list(payload.get("pending_items") or [])
         if repo_error:
             pending.append(f"No se pudo usar el repo de frontend ({repo_error}), generado sin ese contexto.")
+        if commit_error:
+            pending.append(f"Se exploró el repo de frontend pero no se pudo comitear los cambios ({commit_error}).")
         if pending:
             sections.append("## Pendiente\n" + "\n".join(f"- {item}" for item in pending))
 
-        if repo is not None:
-            commit = repo.commit_changes(_feature_slug(str(payload["page_object_filename"])))
-            if commit is not None:
-                branch, sha = commit
-                sections.append(
-                    "## Cambios en el repo de frontend\n"
-                    f"- Rama: `{branch}` (commit `{sha[:8]}`)\n"
-                    f"- Path local: `{repo.path}`\n"
-                    f"- Archivos: {', '.join(sorted(repo.touched_files))}\n"
-                    "- No se pusheó ni se abrió PR — revisar y subir a mano."
-                )
+        if commit is not None and repo is not None:
+            branch, sha = commit
+            sections.append(
+                "## Cambios en el repo de frontend\n"
+                f"- Rama: `{branch}` (commit `{sha[:8]}`)\n"
+                f"- Path local: `{repo.path}`\n"
+                f"- Archivos: {', '.join(sorted(repo.touched_files))}\n"
+                "- No se pusheó ni se abrió PR — revisar y subir a mano."
+            )
 
         return AgentResult(agent="automatizacion", content="\n\n".join(sections))
 

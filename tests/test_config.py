@@ -36,6 +36,15 @@ def test_switching_provider_needs_no_code_change(base_env, monkeypatch):
     assert type(first) is not type(second)
 
 
+@pytest.mark.parametrize("raw_value", ["OpenAI", "openai ", " OPENAI", "OPENAI\n"])
+def test_provider_name_is_normalized_for_case_and_whitespace(base_env, monkeypatch, raw_value):
+    # bug real (auditoría 2026-08-14): un typo de mayúscula o un espacio colado (típico si
+    # se exporta la env var en vez de leerla del .env) levantaba "Unknown MAESTRO_PROVIDER"
+    # pese a que "openai" es un provider soportado.
+    monkeypatch.setenv("MAESTRO_PROVIDER", raw_value)
+    assert isinstance(get_provider(), OpenAICompatProvider)
+
+
 def test_missing_all_env_vars_raises_clear_error_not_keyerror(monkeypatch):
     monkeypatch.delenv("MAESTRO_PROVIDER", raising=False)
     monkeypatch.delenv("MAESTRO_MODEL", raising=False)

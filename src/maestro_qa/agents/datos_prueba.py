@@ -63,7 +63,7 @@ class DatosPruebaAgent:
     def run(self, intake: Intake, provider: Provider) -> AgentResult:
         raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
         spec = json.loads(extract_json(raw, dict))
-        dataset_id = spec.get("dataset_id", "DS-UNKNOWN")
+        dataset_id = spec.get("dataset_id") or "DS-UNKNOWN"
 
         scripts_dir = vendor_bundle.scripts_dir()
         output_dir = Path.cwd() / "qa-artifacts" / "data" / dataset_id

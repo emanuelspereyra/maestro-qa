@@ -37,8 +37,14 @@ Devolvé EXCLUSIVAMENTE un objeto JSON (sin texto adicional, sin markdown) con e
 
 
 def _validate(payload: dict[str, object]) -> None:
-    if not payload.get("acceptance_criteria"):
+    criteria = payload.get("acceptance_criteria")
+    if not criteria:
         raise ValueError("acceptance_criteria no puede estar vacío")
+    if not isinstance(criteria, list):
+        raise ValueError("acceptance_criteria debe ser una lista")  # noqa: TRY004 - convención del proyecto: ValueError para toda validación de input
+    for index, criterion in enumerate(criteria):
+        if not criterion.get("id") or not criterion.get("text"):
+            raise ValueError(f"acceptance_criteria[{index}]: faltan campos 'id'/'text'")
     matrix = payload.get("traceability_matrix")
     if not isinstance(matrix, list) or not matrix:
         raise ValueError("traceability_matrix no puede estar vacía")

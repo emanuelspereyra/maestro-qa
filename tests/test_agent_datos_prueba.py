@@ -75,3 +75,17 @@ def test_llm_response_wrapped_in_markdown_fence_is_still_parsed(tmp_path, monkey
 
     result = DatosPruebaAgent().run(intake, provider)
     assert "DS-USERS-001" in result.content
+
+
+def test_explicit_null_dataset_id_falls_back_to_default_instead_of_crashing(tmp_path, monkeypatch):
+    # bug real (auditoría 2026-08-14): spec.get("dataset_id", "DS-UNKNOWN") solo cubre la
+    # clave ausente, no un `null` explícito -- Path(..., None) tiraba TypeError críptico.
+    monkeypatch.chdir(tmp_path)
+    spec = {**VALID_SPEC, "dataset_id": None}
+    provider = FakeProvider(json.dumps(spec))
+    intake = Intake(source="spec", text="necesito datos de usuarios de prueba")
+
+    result = DatosPruebaAgent().run(intake, provider)
+
+    assert "DS-UNKNOWN" in result.content
+    assert (tmp_path / "qa-artifacts" / "data" / "DS-UNKNOWN" / "dataset.json").exists()

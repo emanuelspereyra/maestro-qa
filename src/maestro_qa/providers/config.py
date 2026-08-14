@@ -25,7 +25,7 @@ def get_provider() -> Provider:
             f"Faltan variables de entorno: {', '.join(missing)}. "
             "Copiá .env.example a .env y completalas (ver README)."
         )
-    name = os.environ["MAESTRO_PROVIDER"]
+    name = os.environ["MAESTRO_PROVIDER"].strip().lower()
     model = os.environ["MAESTRO_MODEL"]
     api_key = os.environ["MAESTRO_API_KEY"]
 

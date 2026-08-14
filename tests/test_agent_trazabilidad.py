@@ -89,3 +89,14 @@ def test_response_wrapped_in_markdown_fence_is_still_parsed():
 
     result = TrazabilidadAgent().run(intake, provider)
     assert "AC-1" in result.content
+
+
+def test_acceptance_criterion_missing_text_raises_clear_error_not_keyerror():
+    # bug real (auditoría 2026-08-14): _validate no chequeaba que cada acceptance_criteria
+    # tuviera "text", y run() accedía a c["text"] directo -> KeyError sin mensaje claro.
+    payload = {**VALID_PAYLOAD, "acceptance_criteria": [{"id": "AC-1"}]}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="login con Google")
+
+    with pytest.raises(ValueError, match="acceptance_criteria\\[0\\]"):
+        TrazabilidadAgent().run(intake, provider)

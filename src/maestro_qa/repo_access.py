@@ -60,6 +60,11 @@ def _resolve_safe(root: Path, relative: str) -> Path:
     candidate = (root / relative).resolve()
     if candidate != root.resolve() and root.resolve() not in candidate.parents:
         raise ValueError(f"path fuera del repo: {relative!r}")
+    # El LLM no controla el estado interno de git — sin esto, write_file(".git/hooks/
+    # pre-commit", ...) o ".git/config" escriben directo al repo git real (bug real,
+    # encontrado en auditoría 2026-08-14).
+    if candidate == root.resolve() / ".git" or (root.resolve() / ".git") in candidate.parents:
+        raise ValueError(f"path dentro de .git/, no permitido: {relative!r}")
     return candidate
 
 
@@ -97,7 +102,10 @@ class RepoAccess:
             if name == "write_file":
                 return self.write_file(str(args["path"]), str(args["content"]))
             return f"error: herramienta desconocida {name!r}"
-        except (ValueError, OSError, KeyError) as exc:
+        except (ValueError, OSError, KeyError, TypeError, AttributeError) as exc:
+            # El LLM puede mandar args con la forma equivocada (path como lista, content
+            # ausente, etc.) — nunca debe tirar una excepción no manejada que rompa todo
+            # el loop de tool-calling del provider.
             return f"error: {exc}"
 
     def commit_changes(self, feature_slug: str) -> tuple[str, str] | None:
@@ -106,7 +114,7 @@ class RepoAccess:
         if not self.touched_files:
             return None
 
-        timestamp = datetime.now(tz=UTC).strftime("%Y%m%d%H%M%S")
+        timestamp = datetime.now(tz=UTC).strftime("%Y%m%d%H%M%S%f")
         branch = f"automatizacion/{feature_slug}-{timestamp}"
         _run(["git", "checkout", "-b", branch], cwd=self.path)
         _run(["git", "add", "-A"], cwd=self.path)

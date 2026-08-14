@@ -37,20 +37,29 @@ class AnthropicProvider:
         max_tokens = kwargs.pop("max_tokens", 4096)
         conversation = list(messages)
 
-        def call() -> anthropic.types.Message:
+        def call(include_tools: bool) -> anthropic.types.Message:
             return self._client.messages.create(  # type: ignore[call-overload,no-any-return]
                 model=self._model,
                 system=system,
                 messages=conversation,
                 max_tokens=max_tokens,
-                **({"tools": _to_anthropic_tools(tools)} if tools else {}),
+                **({"tools": _to_anthropic_tools(tools)} if include_tools and tools else {}),
                 **kwargs,
             )
 
-        for _ in range(_MAX_TOOL_ITERATIONS):
-            response = with_retries(call, is_transient=lambda exc: isinstance(exc, _TRANSIENT))
+        for iteration in range(_MAX_TOOL_ITERATIONS):
+            # En la última iteración se corta el acceso a tools para forzar una
+            # respuesta de texto final — sin esto, si el modelo sigue pidiendo tool_use
+            # al llegar al tope, se devuelve "" (el último bloque no tiene texto) y se
+            # pierde todo lo explorado/escrito hasta ahí (bug real, auditoría 2026-08-14).
+            is_last = iteration == _MAX_TOOL_ITERATIONS - 1
 
-            if response.stop_reason != "tool_use" or not tool_executor:
+            def call_this_iteration(skip_tools: bool = is_last) -> anthropic.types.Message:
+                return call(not skip_tools)
+
+            response = with_retries(call_this_iteration, is_transient=lambda exc: isinstance(exc, _TRANSIENT))
+
+            if response.stop_reason != "tool_use" or not tool_executor or is_last:
                 return "".join(block.text for block in response.content if block.type == "text")
 
             conversation.append({"role": "assistant", "content": response.content})
@@ -65,4 +74,4 @@ class AnthropicProvider:
             ]
             conversation.append({"role": "user", "content": tool_results})
 
-        return "".join(block.text for block in response.content if block.type == "text")
+        raise AssertionError("unreachable: el loop siempre retorna en la última iteración")

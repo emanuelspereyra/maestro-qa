@@ -106,3 +106,14 @@ def test_test_type_with_different_casing_is_normalized_not_rejected():
     result = PerformanceAgent().run(intake, provider)
 
     assert "Tipo de ensayo: load" in result.content
+
+
+def test_non_string_locustfile_code_raises_clear_error_not_typeerror():
+    # bug real (auditoría 2026-08-14): ast.parse(payload["locustfile_code"]) sin chequeo
+    # de tipo tiraba TypeError sin capturar si el LLM devolvía algo que no fuera string.
+    payload = {**VALID_PAYLOAD, "locustfile_code": ["from locust import HttpUser"]}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="spec", text="probar carga del checkout")
+
+    with pytest.raises(ValueError, match="se esperaba código como string"):
+        PerformanceAgent().run(intake, provider)

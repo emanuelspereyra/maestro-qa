@@ -37,7 +37,9 @@ Devolvé EXCLUSIVAMENTE un objeto JSON (sin texto adicional, sin markdown) con e
 _REQUIRED_FIELDS = ["api_client_filename", "api_client_code", "test_filename", "test_code"]
 
 
-def _check_syntax(filename: str, code: str) -> None:
+def _check_syntax(filename: str, code: object) -> None:
+    if not isinstance(code, str):
+        raise ValueError(f"{filename}: se esperaba código como string, se recibió {type(code).__name__}")  # noqa: TRY004 - convención del proyecto: ValueError para toda validación de input
     try:
         ast.parse(code)
     except SyntaxError as exc:

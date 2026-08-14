@@ -89,3 +89,15 @@ def test_missing_required_field_raises_clear_error_not_keyerror(missing_field):
 
     with pytest.raises(ValueError, match=missing_field):
         AutomatizacionApiAgent().run(intake, provider)
+
+
+def test_non_string_code_raises_clear_error_not_typeerror():
+    # bug real (auditoría 2026-08-14): _validate solo chequeaba "truthy", no que el
+    # código fuera un string -- una lista de líneas pasaba la validación y ast.parse
+    # tiraba TypeError sin capturar en vez de un mensaje claro.
+    payload = {**VALID_PAYLOAD, "test_code": ["import pytest", "def test_x(): pass"]}
+    provider = FakeProvider(json.dumps(payload))
+    intake = Intake(source="jira_ticket", text="endpoint de usuarios")
+
+    with pytest.raises(ValueError, match="se esperaba código como string"):
+        AutomatizacionApiAgent().run(intake, provider)

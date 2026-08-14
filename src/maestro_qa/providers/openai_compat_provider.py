@@ -45,23 +45,32 @@ class OpenAICompatProvider:
     ) -> str:
         conversation: list[dict[str, object]] = [{"role": "system", "content": system}, *messages]
 
-        def call() -> openai.types.chat.ChatCompletionMessage:
+        def call(include_tools: bool) -> openai.types.chat.ChatCompletionMessage:
             response = self._client.chat.completions.create(  # type: ignore[call-overload]
                 model=self._model,
                 messages=conversation,
-                **({"tools": _to_openai_tools(tools)} if tools else {}),
+                **({"tools": _to_openai_tools(tools)} if include_tools and tools else {}),
                 **kwargs,
             )
             return response.choices[0].message  # type: ignore[no-any-return]
 
-        for _ in range(_MAX_TOOL_ITERATIONS):
-            message = with_retries(call, is_transient=lambda exc: isinstance(exc, _TRANSIENT))
+        for iteration in range(_MAX_TOOL_ITERATIONS):
+            # En la última iteración se corta el acceso a tools para forzar una
+            # respuesta de texto final — sin esto, si el modelo sigue pidiendo tool calls
+            # al llegar al tope, se devuelve "" y se pierde todo lo explorado/escrito
+            # hasta ahí (bug real, auditoría 2026-08-14, mismo fix que AnthropicProvider).
+            is_last = iteration == _MAX_TOOL_ITERATIONS - 1
+
+            def call_this_iteration(skip_tools: bool = is_last) -> openai.types.chat.ChatCompletionMessage:
+                return call(not skip_tools)
+
+            message = with_retries(call_this_iteration, is_transient=lambda exc: isinstance(exc, _TRANSIENT))
 
             # Maestro QA solo declara tools de tipo "function" (ver _to_openai_tools), así
             # que nunca deberíamos recibir un custom tool call de vuelta — igual se filtra
             # por las dudas en vez de asumirlo.
             calls = [(tc.id, fn) for tc in (message.tool_calls or []) if (fn := getattr(tc, "function", None))]
-            if not calls or not tool_executor:
+            if not calls or not tool_executor or is_last:
                 return message.content or ""
 
             conversation.append(
@@ -75,7 +84,12 @@ class OpenAICompatProvider:
                 }
             )
             for call_id, fn in calls:
-                result = tool_executor(fn.name, json.loads(fn.arguments))
+                try:
+                    args = json.loads(fn.arguments)
+                except json.JSONDecodeError as exc:
+                    result = f"error: argumentos inválidos ({exc})"
+                else:
+                    result = tool_executor(fn.name, args)
                 conversation.append({"role": "tool", "tool_call_id": call_id, "content": result})
 
-        return message.content or ""
+        raise AssertionError("unreachable: el loop siempre retorna en la última iteración")

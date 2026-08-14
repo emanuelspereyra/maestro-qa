@@ -74,6 +74,12 @@ class PriorizacionBugsAgent:
         raw = provider.complete(system=_SYSTEM_PROMPT, messages=[{"role": "user", "content": intake.text}])
         payload = json.loads(extract_json(raw, dict))
         _validate(payload)
+        # Nunca confiar en que el LLM respete "no decidís la prioridad de negocio" — se
+        # fuerza acá en vez de validar y rechazar, para no romper la corrida por una
+        # variación de casing/redacción del LLM en un campo que de todos modos vamos a
+        # pisar (bug real, auditoría 2026-08-14: el LLM podía devolver una prioridad real
+        # y quedaba impresa como si fuera legítima).
+        payload["business_priority"] = "pendiente de decisión de negocio"
 
         content = (
             "**Borrador sin duplicados verificados ni publicación real** "
