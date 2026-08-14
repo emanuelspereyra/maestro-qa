@@ -145,11 +145,30 @@ def test_all_routable_agents_are_registered_by_mcp_server():
 
 def test_ensure_project_impl_creates_qa_project_yaml(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mcp_server.version_check, "check_for_update", lambda: None)
 
     result = mcp_server._ensure_project_impl()
 
     assert "qa-project.yaml" in result
     assert (tmp_path / "qa-project.yaml").exists()
+
+
+def test_ensure_project_impl_includes_update_notice_when_available(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mcp_server.version_check, "check_for_update", lambda: "Hay una versión nueva: 9.9.9")
+
+    result = mcp_server._ensure_project_impl()
+
+    assert "Hay una versión nueva: 9.9.9" in result
+
+
+def test_ensure_project_impl_has_no_notice_when_up_to_date(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mcp_server.version_check, "check_for_update", lambda: None)
+
+    result = mcp_server._ensure_project_impl()
+
+    assert "versión nueva" not in result
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="stdio subprocess, no aplica en Windows")

@@ -88,8 +88,10 @@ Expone Maestro QA como servidor MCP (ver [`specs/020-servidor-mcp.md`](specs/020
 - `run_qa_from_work_item(work_item_id)` — igual que `run_qa`, pero trae el texto de un
   work item real de Azure DevOps por ID en vez de pegarlo a mano (necesita
   `MAESTRO_READER=azure_devops`, ver [`specs/028-reader-azure-devops.md`](specs/028-reader-azure-devops.md)).
-- `ensure_project()` — crea/lee `qa-project.yaml` y reporta qué credenciales propias de
-  Maestro QA están configuradas (sin exponer valores).
+- `ensure_project()` — crea/lee `qa-project.yaml`, reporta qué credenciales propias de
+  Maestro QA están configuradas (sin exponer valores), y avisa si hay una versión nueva
+  disponible en GitHub (nunca se actualiza sola — ver
+  [`specs/030-chequeo-de-version.md`](specs/030-chequeo-de-version.md)).
 
 ### Automatización con acceso a repo de frontend (opcional)
 

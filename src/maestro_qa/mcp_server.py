@@ -3,7 +3,7 @@ from typing import Literal
 
 from mcp.server import MCPServer
 
-from . import config, onboarding, readers
+from . import config, onboarding, readers, version_check
 
 # Registra los 10 agentes en AGENT_REGISTRY (efecto de solo importar cada módulo).
 # orchestrator.py no los importa él mismo a propósito (evita import circular, ver
@@ -62,7 +62,12 @@ def _ensure_project_impl() -> str:
     env_vars = "\n".join(
         f"- {name}: {'configurada' if configured else 'falta'}" for name, configured in status.env.items()
     )
-    return f"qa-project.yaml: {status.qa_project_path}\n\nRepos:\n{repos}\n\nVariables:\n{env_vars}"
+    result = f"qa-project.yaml: {status.qa_project_path}\n\nRepos:\n{repos}\n\nVariables:\n{env_vars}"
+
+    update_notice = version_check.check_for_update()
+    if update_notice:
+        result += f"\n\n{update_notice}"
+    return result
 
 
 @mcp.tool()
