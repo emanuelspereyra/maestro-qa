@@ -12,6 +12,45 @@ Ver [`specs/000-arquitectura.md`](specs/000-arquitectura.md) para el diseño com
 el servidor — la guía de uso día a día con tickets reales está en
 [`docs/onboarding-equipo-qa.md`](docs/onboarding-equipo-qa.md).
 
+## Tecnologías
+
+**Motor:**
+- Python 3.11+ (CI corre en 3.12), empaquetado con [Hatchling](https://hatch.pypa.io/).
+- [`mcp`](https://modelcontextprotocol.io/) — SDK oficial del Model Context Protocol,
+  expone Maestro QA como servidor MCP.
+- [`anthropic`](https://github.com/anthropics/anthropic-sdk-python) +
+  [`openai`](https://github.com/openai/openai-python) — el segundo cubre, vía un solo
+  adaptador con `base_url` distinta, cualquier API compatible con OpenAI: OpenAI, Gemini,
+  Kimi, Qwen, DeepSeek.
+- [`httpx`](https://www.python-httpx.org/) — cliente HTTP para las integraciones externas
+  (GitHub, Azure DevOps, SonarQube).
+- [`PyYAML`](https://pyyaml.org/) — lee/escribe `qa-project.yaml`.
+
+**Clientes MCP soportados:** Claude Code, GitHub Copilot (VS Code), Codex CLI — mismo
+protocolo genérico, sin integración específica por cliente. Instalable con `pip` o
+zero-install con [`uv`/`uvx`](https://docs.astral.sh/uv/).
+
+**Integraciones externas (todas opcionales):**
+- [GitHub REST API](https://docs.github.com/en/rest) — push + apertura de PR del código
+  que genera `automatizacion`/`automatizacion_api` (spec 026).
+- [Azure DevOps REST API](https://learn.microsoft.com/en-us/rest/api/azure/devops/) —
+  lectura de work items (spec 028) y publicación de casos como work items (spec 027).
+- [SonarQube](https://www.sonarsource.com/products/sonarqube/) — lectura de hallazgos de
+  seguridad (spec 014), con un modo efímero que lo levanta en
+  [Docker](https://www.docker.com/) por corrida y lo destruye al terminar (spec 015).
+
+**Lo que el fleet genera (no son dependencias de Maestro QA, sino de los proyectos que
+audita):**
+- [Playwright](https://playwright.dev/python/) (Python) — Page Objects + tests que
+  genera `automatizacion`.
+- [pytest](https://pytest.org/) + [HTTPX](https://www.python-httpx.org/) — cliente de
+  API + tests que genera `automatizacion_api`.
+- [Locust](https://locust.io/) — locustfiles que genera `performance`.
+
+**Calidad/CI:** [`ruff`](https://docs.astral.sh/ruff/) (lint), [`mypy`](https://mypy-lang.org/)
+en modo strict, [`pytest`](https://pytest.org/), todo corriendo en
+[GitHub Actions](https://github.com/features/actions) en cada push/PR a `main`.
+
 ## Metodología: Spec-Driven Development
 
 Ninguna feature se implementa sin una spec primero. Antes de escribir código:
