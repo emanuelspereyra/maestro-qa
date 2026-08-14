@@ -32,10 +32,15 @@ _KEYWORD_AGENTS = {
     "regresion": ["regresión", "regresion", "regression", "suite completa"],
     "performance": ["performance", "prueba de carga", "estrés", "estres", "latencia", "throughput"],
     "seguridad": ["seguridad", "vulnerabilidad", "owasp", "auth", "permisos"],
+    "calidad_codigo": ["revisar código", "code review", "refactor", "calidad de código", "simplificar código"],
 }
 
 _RELEASE_READINESS = "release_readiness"
 _CASOS_MANUALES = "casos_manuales"
+_CALIDAD_CODIGO = "calidad_codigo"
+# calidad_codigo (spec 025) revisa el código que estos agentes generan en el mismo run —
+# necesita correr después de ambos para recibirlo como contexto.
+_CODE_GENERATING_AGENTS = ("automatizacion", "automatizacion_api")
 
 
 @dataclass
@@ -143,22 +148,43 @@ def _with_casos_context(intake: Intake, casos_result: AgentResult | None) -> Int
     )
 
 
+def _with_code_context(intake: Intake, code_results: dict[str, AgentResult]) -> Intake:
+    blocks = [
+        f"### {name}\n{result.content}"
+        for name in _CODE_GENERATING_AGENTS
+        if (result := code_results.get(name)) is not None and not result.error
+    ]
+    if not blocks:
+        return intake
+    return Intake(
+        source=intake.source,
+        text=f"{intake.text}\n\nCódigo generado en este run:\n\n" + "\n\n".join(blocks),
+    )
+
+
 def run(intake: Intake, provider: Provider, history_dir: Path | None = None) -> RunResult:
     # casos_manuales corre primero: los demás agentes de contenido usan sus data_contract/
     # steps reales en vez de reinterpretar el ticket de forma independiente (spec 008).
+    # calidad_codigo corre último de los "normales" (spec 025): necesita ver el código que
+    # automatizacion/automatizacion_api ya generaron en la misma corrida.
     selected = classify_agents(intake)
-    ordered = sorted(selected, key=lambda name: 0 if name == _CASOS_MANUALES else 1)
+    ordered = sorted(selected, key=lambda name: 0 if name == _CASOS_MANUALES else (2 if name == _CALIDAD_CODIGO else 1))
     run_id = _start_history(history_dir, intake) if history_dir else None
 
     results: list[AgentResult] = []
     casos_result: AgentResult | None = None
+    code_results: dict[str, AgentResult] = {}
     for name in ordered:
         if name not in AGENT_REGISTRY:
             continue
         agent_intake = intake if name == _CASOS_MANUALES else _with_casos_context(intake, casos_result)
+        if name == _CALIDAD_CODIGO:
+            agent_intake = _with_code_context(agent_intake, code_results)
         result = _run_agent(name, agent_intake, provider)
         if name == _CASOS_MANUALES:
             casos_result = result
+        if name in _CODE_GENERATING_AGENTS:
+            code_results[name] = result
         results.append(result)
         if run_id and history_dir:
             _log_history(history_dir, run_id, result)

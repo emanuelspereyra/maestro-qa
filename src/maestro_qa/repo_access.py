@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 from . import onboarding
-from .providers.base import Tool
+from .providers.base import Tool, ToolExecutor
 
 _CACHE_ROOT = Path.home() / ".cache" / "maestro-qa" / "repos"
 
@@ -48,6 +48,10 @@ TOOLS: list[Tool] = [
         },
     },
 ]
+
+# Para agentes de solo lectura (ej. calidad_codigo, spec 025): nunca se les ofrece
+# write_file en el schema.
+READ_ONLY_TOOLS: list[Tool] = [tool for tool in TOOLS if tool["name"] != "write_file"]
 
 
 def _slug(url: str) -> str:
@@ -107,6 +111,18 @@ class RepoAccess:
             # ausente, etc.) — nunca debe tirar una excepción no manejada que rompa todo
             # el loop de tool-calling del provider.
             return f"error: {exc}"
+
+    def read_only_executor(self) -> ToolExecutor:
+        """Envuelve execute() rechazando write_file como defensa en profundidad — un LLM
+        puede alucinar una tool call a algo que no se le ofreció en el schema (ver
+        READ_ONLY_TOOLS, usado por agentes de solo lectura como calidad_codigo, spec 025)."""
+
+        def executor(name: str, args: dict[str, object]) -> str:
+            if name == "write_file":
+                return "error: acceso de solo lectura, write_file no está permitido acá"
+            return self.execute(name, args)
+
+        return executor
 
     def commit_changes(self, feature_slug: str) -> tuple[str, str] | None:
         """Crea una rama nueva y comitea los archivos tocados. No pushea. Devuelve

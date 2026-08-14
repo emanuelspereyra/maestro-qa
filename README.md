@@ -2,9 +2,9 @@
 
 Orquestador multi-agente de testing. Recibe una tarea (ticket de Jira o spec/PRD) y
 reparte el trabajo entre agentes especializados (casos manuales, automatización, datos de
-prueba, priorización de bugs, regresión, performance, seguridad, trazabilidad,
-release-readiness). Se expone como servidor MCP — usable desde Claude Code, GitHub Copilot
-y Codex CLI sin integración adicional (protocolo genérico, confirmado con los 3).
+prueba, priorización de bugs, regresión, performance, seguridad, trazabilidad, calidad de
+código, release-readiness). Se expone como servidor MCP — usable desde Claude Code, GitHub
+Copilot y Codex CLI sin integración adicional (protocolo genérico, confirmado con los 3).
 
 Ver [`specs/000-arquitectura.md`](specs/000-arquitectura.md) para el diseño completo.
 
@@ -255,4 +255,20 @@ proveedor. Antes de confiar en un agente nuevo, correr una vez con una key real:
 ```bash
 MAESTRO_PROVIDER=anthropic MAESTRO_MODEL=claude-sonnet-5 MAESTRO_API_KEY=sk-... \
     python scripts/smoke_test.py
+```
+
+## Revisar código (calidad_codigo, spec 025)
+
+El agente `calidad_codigo` audita código real en busca de sobre-ingeniería, abstracciones
+innecesarias y AI-slop en general — mismo criterio que la skill "ponytail". Se activa por
+keyword en un ticket (`revisar código`, `code review`, `refactor`, `calidad de código`), y
+si `automatizacion`/`automatizacion_api` corrieron en el mismo ticket, revisa también el
+código que ellos generaron. Si hay un repo de frontend configurado (`qa-project.yaml`,
+igual que `automatizacion`, spec 023), lo explora de **solo lectura** — nunca escribe.
+
+Para correrlo standalone sobre un archivo o diff puntual, sin pasar por el orquestador:
+
+```bash
+MAESTRO_PROVIDER=anthropic MAESTRO_MODEL=claude-sonnet-5 MAESTRO_API_KEY=sk-... \
+    python scripts/revisar_codigo.py ruta/al/archivo_o_diff
 ```

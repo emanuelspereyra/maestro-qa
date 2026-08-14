@@ -11,6 +11,7 @@ import json
 from maestro_qa.agents import (  # noqa: F401
     automatizacion,
     automatizacion_api,
+    calidad_codigo,
     casos_manuales,
     datos_prueba,
     documentacion,
@@ -202,6 +203,8 @@ RELEASE_READINESS_RESPONSE = json.dumps(
     }
 )
 
+CALIDAD_CODIGO_RESPONSE = json.dumps({"findings": [], "pending_items": []})
+
 
 class RoutingFakeProvider:
     """Devuelve la respuesta canned que corresponde según qué agente preguntó."""
@@ -227,6 +230,8 @@ class RoutingFakeProvider:
             return TRAZABILIDAD_RESPONSE
         if "blocking_issues" in system:
             return RELEASE_READINESS_RESPONSE
+        if "findings" in system:
+            return CALIDAD_CODIGO_RESPONSE
         return CASES_RESPONSE
 
 
@@ -361,3 +366,35 @@ def test_datos_prueba_receives_the_dataset_id_from_casos_manuales(tmp_path, monk
     datos_prueba_message = next(text for system, text in provider.calls if "sensitive_fields" in system)
     assert "DS-AUTH-001" in datos_prueba_message
     assert "Casos de prueba ya generados" in datos_prueba_message
+
+
+def test_calidad_codigo_runs_alongside_casos_manuales(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    intake = Intake(source="jira_ticket", text="revisar código del módulo de login")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = {r.agent for r in result.results}
+    assert "calidad_codigo" in agents_ran
+    assert not any(r.error for r in result.results), result.results
+
+
+def test_calidad_codigo_runs_after_release_readiness_ordering_is_last_among_content_agents(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    intake = Intake(source="jira_ticket", text="Automatizar con e2e y revisar código del login con Google")
+    result = run(intake, provider=RoutingFakeProvider())
+
+    agents_ran = [r.agent for r in result.results]
+    assert agents_ran.index("automatizacion") < agents_ran.index("calidad_codigo")
+    assert agents_ran[-1] == "release_readiness"
+
+
+def test_calidad_codigo_receives_the_code_generated_by_automatizacion_in_the_same_run(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    provider = RecordingRoutingFakeProvider()
+    intake = Intake(source="jira_ticket", text="Automatizar con e2e y revisar código del login con Google")
+
+    run(intake, provider=provider)
+
+    calidad_codigo_message = next(text for system, text in provider.calls if "findings" in system)
+    assert "Código generado en este run" in calidad_codigo_message
+    assert "GoogleLoginPage" in calidad_codigo_message
