@@ -12,7 +12,12 @@ prueba, priorización de bugs, regresión, performance, seguridad, trazabilidad,
 código, exploración de bugs, release-readiness). Se expone como servidor MCP — usable desde Claude Code, GitHub
 Copilot y Codex CLI sin integración adicional (protocolo genérico, confirmado con los 3).
 
-Ver [`specs/000-arquitectura.md`](specs/000-arquitectura.md) para el diseño completo.
+Ver [`specs/000-arquitectura.md`](specs/000-arquitectura.md) para el diseño completo, o
+[`docs/fleet-agentes.html`](docs/fleet-agentes.html) para un resumen visual de qué hace
+cada agente y cómo se reparte el trabajo entre ellos (GitHub muestra el archivo como
+código fuente — para verlo renderizado, abrí
+[esta versión con htmlpreview](https://htmlpreview.github.io/?https://github.com/emanuelspereyra/maestro-qa/blob/main/docs/fleet-agentes.html)
+o descargalo y abrilo en el navegador).
 
 **¿Sos del equipo de QA y ya tenés esto instalado?** Este README es para instalar/operar
 el servidor — la guía de uso día a día con tickets reales está en

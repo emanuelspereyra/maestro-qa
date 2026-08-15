@@ -1,0 +1,526 @@
+<title>Fleet de Agentes</title>
+<style>
+  :root {
+    --bg: #F2F4F6;
+    --surface: #FFFFFF;
+    --surface-2: #EAEEF1;
+    --ink: #1B2430;
+    --ink-soft: #4A5568;
+    --ink-faint: #7C8894;
+    --line: #D7DCE1;
+    --line-strong: #B7C0C8;
+    --accent: #C96F1E;
+    --accent-ink: #7A4413;
+    --accent-soft: #F3E1C9;
+    --ok: #2F6B4F;
+    --ok-soft: #DCEAE2;
+    --warn: #A23B3B;
+    --warn-soft: #F3DEDE;
+    --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11151A;
+      --surface: #181D24;
+      --surface-2: #1F252D;
+      --ink: #E7EAED;
+      --ink-soft: #A8B2BC;
+      --ink-faint: #6E7885;
+      --line: #2B333C;
+      --line-strong: #3A434D;
+      --accent: #E89A52;
+      --accent-ink: #F6D9B8;
+      --accent-soft: #3A2C1B;
+      --ok: #6FB897;
+      --ok-soft: #1D3229;
+      --warn: #E28080;
+      --warn-soft: #3A2323;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #11151A;
+    --surface: #181D24;
+    --surface-2: #1F252D;
+    --ink: #E7EAED;
+    --ink-soft: #A8B2BC;
+    --ink-faint: #6E7885;
+    --line: #2B333C;
+    --line-strong: #3A434D;
+    --accent: #E89A52;
+    --accent-ink: #F6D9B8;
+    --accent-soft: #3A2C1B;
+    --ok: #6FB897;
+    --ok-soft: #1D3229;
+    --warn: #E28080;
+    --warn-soft: #3A2323;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--accent-soft); color: var(--accent-ink); }
+
+  .page {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-family: var(--font-mono);
+    font-size: clamp(30px, 5vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 10px 0 14px;
+    text-wrap: balance;
+  }
+
+  .thesis {
+    font-size: 18px;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  .thesis code, p code, li code, td code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.05em 0.4em;
+  }
+
+  section {
+    margin-top: 64px;
+  }
+
+  h2 {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  h2 .step {
+    font-size: 13px;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  .lede {
+    color: var(--ink-soft);
+    max-width: 68ch;
+    margin: 0 0 28px;
+  }
+
+  /* ---- diagram ---- */
+  figure { margin: 0; }
+  .diagram-wrap {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 8px;
+  }
+  figcaption {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--ink-faint);
+    max-width: 68ch;
+  }
+
+  /* ---- agent table ---- */
+  .fleet-group {
+    margin-bottom: 28px;
+  }
+  .fleet-group h3 {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    font-weight: 600;
+    margin: 0 0 10px;
+  }
+
+  .agent-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .agent-table td {
+    padding: 14px 16px;
+    border-top: 1px solid var(--line);
+    vertical-align: top;
+    font-size: 14.5px;
+  }
+  .agent-table tr:first-child td { border-top: none; }
+  .agent-name {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    white-space: nowrap;
+    width: 190px;
+  }
+  .agent-trigger { width: 220px; color: var(--ink-soft); }
+  .agent-out { color: var(--ink-soft); }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--ok-soft);
+    color: var(--ok);
+    letter-spacing: 0.02em;
+  }
+  .badge.keyword {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+  }
+  .kw {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--ink-faint);
+  }
+
+  /* ---- chain callouts ---- */
+  .chain {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  @media (max-width: 620px) {
+    .chain { grid-template-columns: 1fr; }
+  }
+  .chain-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .chain-card .from-to {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .chain-card p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  /* ---- resilience list ---- */
+  .resilience {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+  .resilience li {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    gap: 12px;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+  }
+  .resilience .mark {
+    font-family: var(--font-mono);
+    color: var(--warn);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-faint);
+    font-family: var(--font-mono);
+  }
+  footer a { color: var(--ink-soft); }
+
+  svg text { font-family: var(--font-mono); }
+</style>
+
+<div class="page">
+
+  <div class="eyebrow">Maestro QA — cómo se reparte el trabajo</div>
+  <h1>Fleet de Agentes</h1>
+  <p class="thesis">
+    Un ticket entra una sola vez. El orquestador decide, por lo que el ticket dice, cuáles
+    de los 12 agentes especializados corren — nunca los 12 a la vez — y encadena el
+    resultado de unos como insumo de otros antes de llegar a un veredicto final.
+  </p>
+
+  <section>
+    <h2><span class="step">01</span> Cómo se distribuye la carga</h2>
+    <p class="lede">
+      No hay un router por LLM decidiendo qué agente conviene — sería más lento y menos
+      predecible. La clasificación es por palabras clave del texto del ticket
+      (<code>classify_agents</code>), determinística y gratis. Dos agentes corren siempre;
+      el resto se prende solo si el ticket lo amerita.
+    </p>
+
+    <figure class="diagram-wrap">
+      <svg viewBox="0 0 860 520" role="img" aria-label="Diagrama de flujo: un ticket entra, casos_manuales corre primero e inyecta contexto en los especialistas que matchean por keyword, automatizacion y automatizacion_api alimentan a calidad_codigo con el código generado, y todo converge en release_readiness que emite el veredicto final.">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+          <marker id="arrowAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+          </marker>
+        </defs>
+
+        <!-- Intake -->
+        <rect x="340" y="10" width="180" height="46" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="430" y="38" text-anchor="middle" font-size="13" fill="currentColor" font-weight="700">Intake (ticket/spec)</text>
+
+        <line x1="430" y1="56" x2="430" y2="88" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- casos_manuales -->
+        <rect x="330" y="90" width="200" height="50" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="430" y="112" text-anchor="middle" font-size="13" fill="var(--accent-ink)" font-weight="700">casos_manuales</text>
+        <text x="430" y="128" text-anchor="middle" font-size="10.5" fill="var(--accent-ink)">siempre corre 1º</text>
+
+        <line x1="430" y1="140" x2="430" y2="172" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- context injection dashed -->
+        <path d="M330,115 C180,115 120,150 120,190 L120,205" fill="none" stroke="var(--accent)" stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#arrowAccent)"/>
+        <text x="122" y="160" font-size="10.5" fill="var(--accent)">casos ya</text>
+        <text x="122" y="172" font-size="10.5" fill="var(--accent)">generados</text>
+
+        <!-- specialist cluster group box -->
+        <rect x="60" y="205" width="740" height="150" rx="10" fill="none" stroke="var(--line-strong)" stroke-width="1.3" stroke-dasharray="3 3"/>
+        <text x="78" y="226" font-size="11" fill="currentColor" font-weight="700" letter-spacing="0.06em">ESPECIALISTAS — SOLO SI EL TICKET MATCHEA UNA KEYWORD</text>
+
+        <!-- specialist boxes -->
+        <g font-size="12">
+          <rect x="80" y="240" width="130" height="42" rx="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="145" y="265" text-anchor="middle" fill="currentColor">automatizacion</text>
+
+          <rect x="225" y="240" width="150" height="42" rx="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="300" y="265" text-anchor="middle" fill="currentColor">automatizacion_api</text>
+
+          <rect x="390" y="240" width="120" height="42" rx="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="450" y="265" text-anchor="middle" fill="currentColor">seguridad</text>
+
+          <rect x="525" y="240" width="120" height="42" rx="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="585" y="265" text-anchor="middle" fill="currentColor">bug_explorer</text>
+
+          <rect x="660" y="240" width="120" height="42" rx="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 3"/>
+          <text x="720" y="265" text-anchor="middle" fill="currentColor" font-style="italic">+5 más</text>
+
+          <rect x="80" y="295" width="130" height="42" rx="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="145" y="320" text-anchor="middle" fill="currentColor">datos_prueba</text>
+
+          <rect x="225" y="295" width="130" height="42" rx="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="290" y="320" text-anchor="middle" fill="currentColor">performance</text>
+
+          <rect x="370" y="295" width="150" height="42" rx="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="445" y="320" text-anchor="middle" fill="currentColor" font-size="11">priorizacion_bugs</text>
+
+          <rect x="535" y="295" width="130" height="42" rx="7" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="600" y="320" text-anchor="middle" fill="currentColor">regresion</text>
+        </g>
+
+        <!-- trazabilidad note -->
+        <text x="78" y="345" font-size="10.5" fill="currentColor" opacity="0.65">+ trazabilidad y documentacion (trazabilidad corre siempre, como casos_manuales)</text>
+
+        <!-- code flow to calidad_codigo -->
+        <path d="M145,282 C145,400 500,430 620,410" fill="none" stroke="var(--accent)" stroke-width="1.3" marker-end="url(#arrowAccent)"/>
+        <path d="M300,282 C300,400 500,430 620,410" fill="none" stroke="var(--accent)" stroke-width="1.3" marker-end="url(#arrowAccent)"/>
+        <text x="430" y="398" font-size="10.5" fill="var(--accent)" text-anchor="middle">código generado</text>
+
+        <!-- calidad_codigo -->
+        <rect x="620" y="380" width="160" height="48" rx="8" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+        <text x="700" y="401" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="700">calidad_codigo</text>
+        <text x="700" y="416" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.7">último "normal", solo lectura</text>
+
+        <!-- converge to release_readiness -->
+        <line x1="430" y1="355" x2="430" y2="470" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrow)"/>
+        <line x1="700" y1="428" x2="470" y2="468" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrow)"/>
+        <text x="560" y="450" font-size="10.5" fill="currentColor" text-anchor="middle" opacity="0.75">resultados + errores</text>
+
+        <!-- release_readiness -->
+        <rect x="290" y="472" width="280" height="46" rx="8" fill="var(--ink)" stroke="var(--ink)" stroke-width="1.5"/>
+        <text x="430" y="500" text-anchor="middle" font-size="13" fill="var(--bg)" font-weight="700">release_readiness → GO / NO_GO</text>
+      </svg>
+    </figure>
+    <figcaption>
+      <code>casos_manuales</code> corre primero e inyecta sus casos en el resto; los
+      especialistas se prenden solo si el ticket matchea su keyword; el código que
+      generan <code>automatizacion</code>/<code>automatizacion_api</code> alimenta a
+      <code>calidad_codigo</code>; todo converge en <code>release_readiness</code>, que
+      corrige el veredicto a <code>NO_GO</code> si algo falló, aunque el texto del LLM
+      diga lo contrario.
+    </figcaption>
+  </section>
+
+  <section>
+    <h2><span class="step">02</span> Los 12 agentes</h2>
+    <p class="lede">Agrupados por cuándo entran en juego, no por orden alfabético.</p>
+
+    <div class="fleet-group">
+      <h3>Base — corren siempre, sin importar el ticket</h3>
+      <table class="agent-table">
+        <tr>
+          <td class="agent-name">casos_manuales</td>
+          <td class="agent-trigger"><span class="badge">siempre · 1º</span></td>
+          <td class="agent-out">Casos de prueba manuales estructurados. Su salida se inyecta en todos los demás.</td>
+        </tr>
+        <tr>
+          <td class="agent-name">trazabilidad</td>
+          <td class="agent-trigger"><span class="badge">siempre</span></td>
+          <td class="agent-out">Cruza criterios de aceptación contra los casos generados — qué quedó cubierto, qué es un hueco.</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="fleet-group">
+      <h3>Especialistas — por palabra clave del ticket</h3>
+      <table class="agent-table">
+        <tr>
+          <td class="agent-name">automatizacion</td>
+          <td class="agent-trigger"><span class="kw">automatiz, e2e, ci/cd</span></td>
+          <td class="agent-out">Page Object + test Playwright (frontend). Puede explorar/editar el repo real si está conectado.</td>
+        </tr>
+        <tr>
+          <td class="agent-name">automatizacion_api</td>
+          <td class="agent-trigger"><span class="kw">endpoint, api rest, backend</span></td>
+          <td class="agent-out">Cliente HTTPX + test pytest (backend).</td>
+        </tr>
+        <tr>
+          <td class="agent-name">datos_prueba</td>
+          <td class="agent-trigger"><span class="kw">datos de prueba, dataset, carga masiva</span></td>
+          <td class="agent-out">Dataset generado por seed — mismo seed, mismos datos.</td>
+        </tr>
+        <tr>
+          <td class="agent-name">performance</td>
+          <td class="agent-trigger"><span class="kw">performance, prueba de carga, latencia</span></td>
+          <td class="agent-out">Locustfile listo para correr.</td>
+        </tr>
+        <tr>
+          <td class="agent-name">priorizacion_bugs</td>
+          <td class="agent-trigger"><span class="kw">bug, defecto, incidencia, hotfix</span></td>
+          <td class="agent-out">Borrador de defecto. Severidad técnica sí; prioridad de negocio siempre queda "pendiente de decisión de negocio".</td>
+        </tr>
+        <tr>
+          <td class="agent-name">seguridad</td>
+          <td class="agent-trigger"><span class="kw">seguridad, vulnerabilidad, owasp</span></td>
+          <td class="agent-out">Casos tipo OWASP + hallazgos de SonarQube si está conectado.</td>
+        </tr>
+        <tr>
+          <td class="agent-name">documentacion</td>
+          <td class="agent-trigger"><span class="kw">documentar, manual de usuario</span></td>
+          <td class="agent-out">Changelog / guía de usuario / referencia técnica según lo que pida el ticket.</td>
+        </tr>
+        <tr>
+          <td class="agent-name">regresion</td>
+          <td class="agent-trigger"><span class="kw">regresión, suite completa</span></td>
+          <td class="agent-out">Qué áreas ya cubiertas hay que re-verificar por este cambio.</td>
+        </tr>
+        <tr>
+          <td class="agent-name">bug_explorer</td>
+          <td class="agent-trigger"><span class="kw">causa raíz, root cause, por qué falla</span></td>
+          <td class="agent-out">Causa probable de un bug — <code>archivo:línea</code> real si hay repo conectado, hipótesis conceptual si no. Nunca inventa un path.</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="fleet-group">
+      <h3>Revisión y cierre</h3>
+      <table class="agent-table">
+        <tr>
+          <td class="agent-name">calidad_codigo</td>
+          <td class="agent-trigger"><span class="kw">revisar código, code review, refactor</span></td>
+          <td class="agent-out">Sobre-ingeniería / AI-slop en código real. Solo lectura — nunca escribe, ni con acceso a repo.</td>
+        </tr>
+        <tr>
+          <td class="agent-name">release_readiness</td>
+          <td class="agent-trigger"><span class="badge">siempre · último</span></td>
+          <td class="agent-out">Lee el resultado de todos los demás y da veredicto: <code>GO</code> / <code>GO_WITH_CONDITIONS</code> / <code>NO_GO</code>.</td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step">03</span> Cómo se derivan las tareas entre agentes</h2>
+    <p class="lede">
+      Ningún agente reinterpreta el ticket desde cero — el orquestador le agrega al
+      <code>intake</code> de ciertos agentes lo que otro ya produjo en la misma corrida,
+      como contexto extra al final del mensaje.
+    </p>
+    <div class="chain">
+      <div class="chain-card">
+        <div class="from-to">casos_manuales → todo el resto</div>
+        <p>
+          Sus casos (con <code>data_contract</code>, <code>steps</code>, <code>business_rule_ids</code>)
+          se agregan como "Casos de prueba ya generados" al mensaje de cada especialista
+          que corre en la misma tanda — así <code>automatizacion</code> automatiza los
+          pasos reales, no una versión inventada del ticket.
+        </p>
+      </div>
+      <div class="chain-card">
+        <div class="from-to">automatizacion(_api) → calidad_codigo</div>
+        <p>
+          El Page Object/test o cliente API/test recién generado se agrega como "Código
+          generado en este run" — por eso <code>calidad_codigo</code> corre al final de
+          los agentes "normales": necesita ver ese código para poder auditarlo.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step">04</span> Qué pasa si algo falla</h2>
+    <ul class="resilience">
+      <li><span class="mark">01</span> Cada agente corre aislado — si uno tira una excepción, se marca <code>(error)</code> y el resto de la tanda sigue sin verse afectado.</li>
+      <li><span class="mark">02</span> <code>release_readiness</code> recibe un encabezado determinístico ("Agentes con error: …") — si hubo errores, corrige el veredicto a <code>NO_GO</code> aunque el texto libre del LLM diga <code>GO</code>.</li>
+      <li><span class="mark">03</span> Las integraciones externas (repo real, push+PR, Azure DevOps) nunca rompen la corrida: si fallan, el resultado ya generado se devuelve igual, con el motivo en "Pendiente".</li>
+    </ul>
+  </section>
+
+  <footer>
+    specs/000-arquitectura.md · specs/002-orquestador.md · github.com/emanuelspereyra/maestro-qa
+  </footer>
+
+</div>
