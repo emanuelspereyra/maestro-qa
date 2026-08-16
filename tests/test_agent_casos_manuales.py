@@ -78,6 +78,15 @@ def test_invalid_cases_raise_with_validation_errors():
         CasosManualesAgent().run(intake, provider)
 
 
+def test_invalid_layer_raises_value_error_not_key_error():
+    broken_case = dict(VALID_CASE, layer="mobile")
+    provider = FakeProvider(json.dumps([broken_case]))
+    intake = Intake(source="spec", text="crear usuario")
+
+    with pytest.raises(ValueError, match="Invalid required layers"):
+        CasosManualesAgent().run(intake, provider)
+
+
 def test_llm_response_wrapped_in_markdown_fence_is_still_parsed():
     cases = [_case("happy-path", "FE-TC-001")]
     provider = FakeProvider(f"```json\n{json.dumps(cases)}\n```")

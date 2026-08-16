@@ -91,6 +91,8 @@ class CasosManualesAgent:
                 check=False,
             )
             report = json.loads(validation.stdout)
+            if report.get("error"):
+                raise ValueError(f"Casos inválidos: {report['error']}")
             if report.get("errors"):
                 raise ValueError(f"Casos inválidos: {'; '.join(report['errors'])}")
 
