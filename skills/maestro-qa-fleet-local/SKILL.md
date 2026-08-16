@@ -39,8 +39,10 @@ version: 1.0.0
 | `calidad_codigo` | `agents/calidad_codigo.py` | — | Sí, si hay repo configurado (frontend/backend o el código que generaron `automatizacion`/`automatizacion_api` en la misma corrida) |
 | `bug_explorer` | `agents/bug_explorer.py` | — | Sí, si hay repo configurado — si no, hipótesis conceptual con `file`/`line` en `null`, nunca inventar un path/línea que no viste de verdad |
 
-## Cuándo preferir esto vs. `mcp__maestro-qa__run_qa`
+## Cuándo usar esto vs. `mcp__maestro-qa__run_qa`
 
-- **Siempre que la API externa esté agotada/dando 429/402** — este modo no depende de esa cuenta para nada.
-- Si preferís mantener el fleet 100% desacoplado de qué sesión lo invoca (comportamiento idéntico sin importar si el cliente es Claude Code, Copilot o Gemini CLI — el requisito de arquitectura original de Maestro QA), seguí usando `run_qa` vía MCP cuando esté disponible. Este modo local es el respaldo cuando esa consistencia importa menos que evitar el rate limit/costo.
-- `casos_manuales` corriendo primero y su resultado inyectado como contexto a los demás agentes de contenido (regla del orquestador real) sigue aplicando acá manualmente: corré ese dominio primero y pasale su output a los siguientes como "Casos de prueba ya generados:" en tu propio prompt.
+**Default (2026-08-16, decisión explícita de Emanuel): usá SIEMPRE este modo local, no `run_qa`.** `MAESTRO_PROVIDER=gemini` tiene muy poco cupo de tokens — no es una alternativa para cuando falla, es la vía normal. No esperes un 429/402 para activarlo.
+
+`run_qa` vía MCP queda como modo alternativo, solo si alguien lo pide explícitamente (ej. para comparar contra el fleet "oficial" desacoplado del modelo que lo invoca, que era el requisito de arquitectura original de Maestro QA — Claude Code, Copilot, Gemini CLI, etc. deberían dar el mismo resultado). Si nadie lo pide, no lo uses.
+
+`casos_manuales` corriendo primero y su resultado inyectado como contexto a los demás agentes de contenido (regla del orquestador real) sigue aplicando acá manualmente: corré ese dominio primero y pasale su output a los siguientes como "Casos de prueba ya generados:" en tu propio prompt.
