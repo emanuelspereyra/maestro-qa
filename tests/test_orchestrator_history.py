@@ -24,6 +24,14 @@ def _events(history_dir):
         connection.close()
 
 
+def _events_with_error_code(history_dir):
+    connection = sqlite3.connect(history_dir / "qa-history.db")
+    try:
+        return connection.execute("SELECT module, error_code FROM events").fetchall()
+    finally:
+        connection.close()
+
+
 def test_no_history_dir_means_no_side_effects(tmp_path, monkeypatch):
     original = dict(AGENT_REGISTRY)
     AGENT_REGISTRY.clear()
@@ -71,3 +79,27 @@ def test_failed_agent_is_logged_as_failed_not_hidden(tmp_path):
 
     AGENT_REGISTRY.clear()
     AGENT_REGISTRY.update(original)
+
+
+def test_failed_agent_records_exception_type_as_error_code(tmp_path):
+    original = dict(AGENT_REGISTRY)
+    AGENT_REGISTRY.clear()
+    AGENT_REGISTRY["casos_manuales"] = FakeAgent("casos_manuales", raises=True)
+    AGENT_REGISTRY["trazabilidad"] = FakeAgent("trazabilidad")
+
+    history_dir = tmp_path / "qa-history"
+    run(Intake(source="spec", text="feature sin keywords"), provider=None, history_dir=history_dir)
+
+    error_codes = dict(_events_with_error_code(history_dir))
+    assert error_codes["casos_manuales"] == "RuntimeError"
+    assert error_codes["trazabilidad"] is None
+
+    AGENT_REGISTRY.clear()
+    AGENT_REGISTRY.update(original)
+
+
+def test_agent_result_without_error_code_keeps_working(tmp_path):
+    result = AgentResult(agent="trazabilidad", content="100% cubierto")
+
+    assert result.error_code is None
+    assert result.error is False
