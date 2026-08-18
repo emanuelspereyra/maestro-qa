@@ -130,12 +130,39 @@ configurado, el código generado se sigue devolviendo igual, solo como texto. Ve
 genérico — se agregan de a una. Sin `MAESTRO_WRITER` seteada, comportamiento idéntico al
 actual. Ver [`specs/027-writer-azure-devops.md`](specs/027-writer-azure-devops.md).
 
-### 1. Configurar credenciales
+### 1. Modo default: sin API key (fleet local)
+
+**No hace falta ninguna credencial de LLM para usar Maestro QA.** El modo default
+(decisión explícita, 2026-08-16) es que tu asistente de IA ya activo — Claude Code,
+Codex CLI, GitHub Copilot, OpenCode, el que sea — corra el fleet de 13 agentes él mismo,
+dentro de su propia sesión, usando la suscripción que ya tenés (Claude Pro/Max, plan de
+Codex, etc.). Cero llamadas a una API externa, cero tokens/costo adicional más allá de tu
+plan de siempre.
+
+Para activarlo, pedile a tu asistente que lea y siga
+[`skills/maestro-qa-fleet-local/SKILL.md`](skills/maestro-qa-fleet-local/SKILL.md). No
+hay nada que instalar ni configurar antes de esto — `ensure_project()` (ver más abajo)
+tampoco necesita ninguna credencial de LLM, solo lee/crea `qa-project.yaml`.
+
+Si tu asistente te pide una `MAESTRO_API_KEY` o te pregunta "qué proveedor de LLM tenés
+disponible" al instalar esto, está leyendo el paso opcional de abajo por error —
+decile explícitamente que use el modo fleet local, sin API key.
+
+### 1b. Opcional — modo API externa desacoplada (`run_qa` vía MCP)
+
+Solo hace falta esto si querés el fleet "oficial", desacoplado del modelo que lo invoca
+(útil para comparar que Claude Code/Copilot/Gemini CLI dan el mismo resultado — era el
+requisito de arquitectura original). Para el uso normal del día a día, **no lo
+configures** — usá el paso 1.
 
 ```bash
 cp .env.example .env
-# completar MAESTRO_PROVIDER / MAESTRO_MODEL / MAESTRO_API_KEY como mínimo
+# completar MAESTRO_PROVIDER / MAESTRO_MODEL / MAESTRO_API_KEY solo si vas a usar este modo
 ```
+
+Nunca se usa una API key paga de Anthropic para esto (descartado explícitamente) —
+`MAESTRO_PROVIDER=gemini` (gratis, con rate limit) es la única opción evaluada hasta
+ahora si se necesita este modo.
 
 ### 2. Correrlo directo (para probar)
 
