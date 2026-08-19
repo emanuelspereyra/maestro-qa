@@ -91,6 +91,13 @@ class CasosManualesAgent:
                 check=False,
             )
             report = json.loads(validation.stdout)
+
+            # Formato error temprano: {"valid": false, "error": "..."} (exit code 2)
+            # Ocurre por: archivo no encontrado, JSON decode error, ValueError en load_document
+            if "error" in report and "delivery_status" not in report:
+                raise ValueError(f"Validación falló (error temprano): {report['error']}")
+
+            # Formato validación normal: reporte completo con delivery_status, errors, etc.
             if report.get("errors"):
                 raise ValueError(f"Casos inválidos: {'; '.join(report['errors'])}")
 

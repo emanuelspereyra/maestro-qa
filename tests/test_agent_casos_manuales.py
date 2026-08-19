@@ -148,3 +148,37 @@ def test_writer_misconfiguration_is_reported_without_crashing_the_agent(monkeypa
 
     assert "No se pudo configurar el writer" in result.content
     assert result.artifacts["cases"] == cases
+
+
+def test_early_error_format_from_validate_cases_raises_value_error_not_key_error(monkeypatch):
+    """validate_cases.py returns early-error format {"valid": false, "error": "..."}
+    on file not found / JSON decode error / ValueError. The agent must raise ValueError
+    with the error message, NOT KeyError on 'delivery_status'."""
+    import subprocess
+
+    early_error_report = json.dumps({"valid": False, "error": "No such file or directory: '/tmp/missing.json'"})
+
+    def mock_run(cmd, **kwargs):
+        # First call is validate_cases.py — return early-error format
+        if "validate_cases" in str(cmd[1]):
+            return subprocess.CompletedProcess(
+                args=cmd,
+                returncode=2,
+                stdout=early_error_report,
+                stderr="",
+            )
+        # Second call is render_manual_cases.py — should not be reached
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=0,
+            stdout="",
+            stderr="",
+        )
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    cases = [_case("happy-path", "FE-TC-001")]
+    provider = FakeProvider(json.dumps(cases))
+    intake = Intake(source="spec", text="crear usuario")
+
+    with pytest.raises(ValueError, match="error temprano"):
+        CasosManualesAgent().run(intake, provider)
