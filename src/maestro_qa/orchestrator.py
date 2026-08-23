@@ -2,6 +2,7 @@ import json
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from time import perf_counter
 from typing import Literal
 
 from . import onboarding, vendor_bundle
@@ -56,6 +57,8 @@ class AgentResult:
     content: str
     error: bool = False
     artifacts: dict[str, object] = field(default_factory=dict)
+    # spec 033 — milisegundos que tardó agent.run(); None = no se midió
+    duration_ms: int | None = None
 
 
 @dataclass
@@ -78,12 +81,19 @@ def classify_agents(intake: Intake) -> list[str]:
     return selected
 
 
+def _elapsed_ms(started: float) -> int:
+    return max(0, round((perf_counter() - started) * 1000))
+
+
 def _run_agent(name: str, intake: Intake, provider: Provider) -> AgentResult:
     agent = AGENT_REGISTRY[name]
+    started = perf_counter()
     try:
-        return agent.run(intake, provider)
+        result = agent.run(intake, provider)
     except Exception as exc:  # noqa: BLE001 - un agente roto no debe tumbar a los demás
-        return AgentResult(agent=name, content=str(exc), error=True)
+        return AgentResult(agent=name, content=str(exc), error=True, duration_ms=_elapsed_ms(started))
+    result.duration_ms = _elapsed_ms(started)
+    return result
 
 
 def _history_call(history_dir: Path, *args: str) -> dict[str, object]:
@@ -111,8 +121,7 @@ def _start_history(history_dir: Path, intake: Intake) -> str | None:
 
 def _log_history(history_dir: Path, run_id: str, result: AgentResult) -> None:
     try:
-        _history_call(
-            history_dir,
+        args = [
             "log",
             "--run-id",
             run_id,
@@ -124,7 +133,10 @@ def _log_history(history_dir: Path, run_id: str, result: AgentResult) -> None:
             "FAILED" if result.error else "EXECUTED",
             "--summary",
             result.content[:200],
-        )
+        ]
+        if result.duration_ms is not None:
+            args += ["--duration-ms", str(result.duration_ms)]
+        _history_call(history_dir, *args)
     except Exception:  # noqa: BLE001, S110
         pass
 
