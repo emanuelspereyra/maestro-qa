@@ -129,9 +129,10 @@ def _log_history(history_dir: Path, run_id: str, result: AgentResult) -> None:
         pass
 
 
-def _end_history(history_dir: Path, run_id: str) -> None:
+def _end_history(history_dir: Path, run_id: str, results: list[AgentResult]) -> None:
+    status = "FAILED" if any(r.error for r in results) else "COMPLETED"
     try:
-        _history_call(history_dir, "end-run", "--run-id", run_id, "--status", "COMPLETED")
+        _history_call(history_dir, "end-run", "--run-id", run_id, "--status", status)
     except Exception:  # noqa: BLE001, S110
         pass
 
@@ -201,6 +202,6 @@ def run(intake: Intake, provider: Provider, history_dir: Path | None = None) -> 
             _log_history(history_dir, run_id, readiness_result)
 
     if run_id and history_dir:
-        _end_history(history_dir, run_id)
+        _end_history(history_dir, run_id, results)
 
     return RunResult(results=results)
