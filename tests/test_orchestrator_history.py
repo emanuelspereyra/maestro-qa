@@ -71,3 +71,53 @@ def test_failed_agent_is_logged_as_failed_not_hidden(tmp_path):
 
     AGENT_REGISTRY.clear()
     AGENT_REGISTRY.update(original)
+
+
+def _run_status(history_dir):
+    connection = sqlite3.connect(history_dir / "qa-history.db")
+    try:
+        return connection.execute("SELECT status FROM runs").fetchone()[0]
+    finally:
+        connection.close()
+
+
+def _end_run_status(history_dir):
+    connection = sqlite3.connect(history_dir / "qa-history.db")
+    try:
+        return connection.execute(
+            "SELECT status FROM events WHERE module='run' AND action='end-run'"
+        ).fetchone()[0]
+    finally:
+        connection.close()
+
+
+def test_end_run_failed_when_any_agent_fails(tmp_path):
+    original = dict(AGENT_REGISTRY)
+    AGENT_REGISTRY.clear()
+    AGENT_REGISTRY["casos_manuales"] = FakeAgent("casos_manuales", raises=True)
+    AGENT_REGISTRY["trazabilidad"] = FakeAgent("trazabilidad")
+
+    history_dir = tmp_path / "qa-history"
+    run(Intake(source="spec", text="feature sin keywords"), provider=None, history_dir=history_dir)
+
+    assert _end_run_status(history_dir) == "FAILED"
+    assert _run_status(history_dir) == "FAILED"
+
+    AGENT_REGISTRY.clear()
+    AGENT_REGISTRY.update(original)
+
+
+def test_end_run_completed_when_all_agents_succeed(tmp_path):
+    original = dict(AGENT_REGISTRY)
+    AGENT_REGISTRY.clear()
+    AGENT_REGISTRY["casos_manuales"] = FakeAgent("casos_manuales")
+    AGENT_REGISTRY["trazabilidad"] = FakeAgent("trazabilidad")
+
+    history_dir = tmp_path / "qa-history"
+    run(Intake(source="spec", text="feature sin keywords"), provider=None, history_dir=history_dir)
+
+    assert _end_run_status(history_dir) == "COMPLETED"
+    assert _run_status(history_dir) == "COMPLETED"
+
+    AGENT_REGISTRY.clear()
+    AGENT_REGISTRY.update(original)
