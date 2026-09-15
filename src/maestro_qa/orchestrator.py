@@ -56,6 +56,7 @@ class AgentResult:
     content: str
     error: bool = False
     artifacts: dict[str, object] = field(default_factory=dict)
+    error_code: str | None = None
 
 
 @dataclass
@@ -83,7 +84,7 @@ def _run_agent(name: str, intake: Intake, provider: Provider) -> AgentResult:
     try:
         return agent.run(intake, provider)
     except Exception as exc:  # noqa: BLE001 - un agente roto no debe tumbar a los demás
-        return AgentResult(agent=name, content=str(exc), error=True)
+        return AgentResult(agent=name, content=str(exc), error=True, error_code=type(exc).__name__)
 
 
 def _history_call(history_dir: Path, *args: str) -> dict[str, object]:
@@ -110,21 +111,23 @@ def _start_history(history_dir: Path, intake: Intake) -> str | None:
 
 
 def _log_history(history_dir: Path, run_id: str, result: AgentResult) -> None:
+    args = [
+        "log",
+        "--run-id",
+        run_id,
+        "--module",
+        result.agent,
+        "--action",
+        "run",
+        "--status",
+        "FAILED" if result.error else "EXECUTED",
+        "--summary",
+        result.content[:200],
+    ]
+    if result.error_code:
+        args += ["--error-code", result.error_code]
     try:
-        _history_call(
-            history_dir,
-            "log",
-            "--run-id",
-            run_id,
-            "--module",
-            result.agent,
-            "--action",
-            "run",
-            "--status",
-            "FAILED" if result.error else "EXECUTED",
-            "--summary",
-            result.content[:200],
-        )
+        _history_call(history_dir, *args)
     except Exception:  # noqa: BLE001, S110
         pass
 
