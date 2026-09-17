@@ -22,7 +22,9 @@ def with_retries(
         except Exception as exc:
             if not is_transient(exc):
                 raise
+            last_exc = exc
             attempt += 1
             if attempt >= max_attempts:
-                raise ProviderError(f"exhausted {max_attempts} retries") from exc
+                detail = f" ({type(last_exc).__name__}: {last_exc})" if last_exc is not None else ""
+                raise ProviderError(f"exhausted {max_attempts} retries{detail}") from last_exc
             time.sleep(backoff_base * (2 ** (attempt - 1)))

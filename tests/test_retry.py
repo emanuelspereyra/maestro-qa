@@ -37,6 +37,30 @@ def test_raises_provider_error_after_exhausting_retries():
         with_retries(always_fails, is_transient=_is_transient, max_attempts=3, backoff_base=0)
 
 
+def test_provider_error_message_includes_underlying_cause():
+    def always_fails():
+        raise TransientError("still rate limited")
+
+    with pytest.raises(ProviderError) as excinfo:
+        with_retries(always_fails, is_transient=_is_transient, max_attempts=3, backoff_base=0)
+
+    message = str(excinfo.value)
+    assert "exhausted 3 retries" in message
+    assert "TransientError" in message
+    assert "still rate limited" in message
+
+
+def test_provider_error_preserves_cause_chain():
+    def always_fails():
+        raise TransientError("root cause")
+
+    with pytest.raises(ProviderError) as excinfo:
+        with_retries(always_fails, is_transient=_is_transient, max_attempts=3, backoff_base=0)
+
+    assert isinstance(excinfo.value.__cause__, TransientError)
+    assert str(excinfo.value.__cause__) == "root cause"
+
+
 def test_non_transient_error_propagates_immediately():
     calls = {"n": 0}
 
