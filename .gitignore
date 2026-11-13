@@ -10,3 +10,11 @@ build/
 .env
 qa-history/
 qa-artifacts/
+
+# Configuración local de agentes de IA: puede guardar comandos con secretos.
+# No versionar; si hace falta compartir algo, revisarlo antes.
+.claude/
+.codex/
+.opencode/
+.gemini/
+.aider*
